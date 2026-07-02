@@ -8,11 +8,10 @@
 </head>
 <body>
 
-    <!-- Elementos decorativos de ambiente espalhados de forma natural (fora do fluxo do layout) -->
-    <div class="floresta canto-superior-esquerdo">🌲 🌳 🌲<br>🌳 &nbsp; 🌲<br>🌲 🌳</div>
-    <div class="floresta canto-superior-direito">🌳 🌲 🌳<br>🌲 &nbsp; 🌳<br>🌳 🌲</div>
-    <div class="floresta canto-inferior-esquerdo">🌲 &nbsp; 🌳<br>🌳 🌲 🌲<br>🌲 &nbsp; 🌳</div>
-    <div class="floresta canto-inferior-direito">🌳 🌲 &nbsp;<br>🌲 🌳 🌳<br>&nbsp; 🌲 🌳</div>
+    <div class="decoracao-floresta topo-esquerda">🌲 🌳 🌲<br>🌳 &nbsp; 🌲<br>🌲 🌳</div>
+    <div class="decoracao-floresta topo-direita">🌳 🌲 🌳<br>🌲 &nbsp; 🌳<br>🌳 🌲</div>
+    <div class="decoracao-floresta baixo-esquerda">🌲 &nbsp; 🌳<br>🌳 🌲 🌲<br>🌲 &nbsp; 🌳</div>
+    <div class="decoracao-floresta baixo-direita">🌳 🌲 &nbsp;<br>🌲 🌳 🌳<br>&nbsp; 🌲 🌳</div>
 
     <div id="logs-feed"></div>
 
@@ -45,7 +44,7 @@
 
     <div id="tela-posicionamento" class="container-tela" style="display:none;">
         <h2>Monte sua Frota (8x8)</h2>
-        <p style="color: #58a6ff;">Obrigatório: Monte 1 navio de 3 blocos juntos e 2 navios de 2 blocks juntos.</p>
+        <p style="color: #58a6ff; font-weight: bold; margin-bottom: 10px;">Obrigatório: Monte 1 navio de 3 blocos juntos e 2 navios de 2 blocos juntos.</p>
         <div class="setup-container">
             <div id="meu-grid-setup" class="grid-8x8"></div>
             <div class="controles-setup">
@@ -176,31 +175,79 @@
         function gerarGridSetup() {
             const container = document.getElementById('meu-grid-setup');
             if (!container) return;
-            
             container.innerHTML = '';
-            // Força a existência visível do Grid
-            container.style.display = 'grid';
-
+            
             for(let r=0; r<8; r++) {
                 for(let c=0; c<8; c++) {
                     let cel = document.createElement('div'); 
                     cel.className = 'celula';
-                    cel.id = `setup-${r}-${c}`;
-                    cel.onclick = () => alternarBloco(r, c, cel);
+                    cel.id = `setup-cel-${r}-${c}`;
+                    cel.onclick = () => alternarBloco(r, c);
                     container.appendChild(cel);
                 }
             }
+            atualizarEstiloEstrategicoNavios(meuTabuleiroSetup, true);
         }
 
-        function alternarBloco(r, c, elemento) {
+        function alternarBloco(r, c) {
             if (meuTabuleiroSetup[r][c] === 0) {
                 if (blocosMarcados >= 7) return;
-                meuTabuleiroSetup[r][c] = 1; elemento.classList.add('meu-navio'); blocosMarcados++;
+                meuTabuleiroSetup[r][c] = 1; blocosMarcados++;
             } else {
-                meuTabuleiroSetup[r][c] = 0; elemento.classList.remove('meu-navio'); blocosMarcados--;
+                meuTabuleiroSetup[r][c] = 0; blocosMarcados--;
             }
             document.getElementById('contador-blocos').innerText = blocosMarcados;
             document.getElementById('btn-confirmar-frota').disabled = (blocosMarcados !== 7);
+            atualizarEstiloEstrategicoNavios(meuTabuleiroSetup, true);
+        }
+
+        /* ALGORITMO DINÂMICO DE TEXTURIZAÇÃO DE SHADERS (PROA/MEIO/POPA)
+           Mapeia vizinhos adjacentes para injetar as classes corretas tanto na horizontal quanto na vertical.
+        */
+        function atualizarEstiloEstrategicoNavios(tabuleiro, esNoSetup, containerAlvo = null) {
+            for (let r = 0; r < 8; r++) {
+                for (let c = 0; c < 8; c++) {
+                    let celulaDOM;
+                    if (esNoSetup) {
+                        celulaDOM = document.getElementById(`setup-cel-${r}-${c}`);
+                    } else if (containerAlvo) {
+                        celulaDOM = containerAlvo.querySelector(`[data-coor="${r}-${c}"]`);
+                    }
+
+                    if (!celulaDOM) continue;
+
+                    // Reset de classes direcionais antigas
+                    celulaDOM.className = 'celula';
+                    if (tabuleiro[r][c] === 2) celulaDOM.classList.add('agua');
+                    if (tabuleiro[r][c] === 3) celulaDOM.classList.add('fogo');
+
+                    if (tabuleiro[r][c] === 1 || (tabuleiro[r][c] === 3 && !esNoSetup)) {
+                        if (tabuleiro[r][c] === 1) celulaDOM.classList.add('meu-navio');
+                        
+                        let temCima = (r > 0 && (tabuleiro[r-1][c] === 1 || tabuleiro[r-1][c] === 3));
+                        let temBaixo = (r < 7 && (tabuleiro[r+1][c] === 1 || tabuleiro[r+1][c] === 3));
+                        let temEsquerda = (c > 0 && (tabuleiro[r][c-1] === 1 || tabuleiro[r][c-1] === 3));
+                        let temDireita = (c < 7 && (tabuleiro[r][c+1] === 1 || tabuleiro[r][c+1] === 3));
+
+                        // Tratamento de Orientação Horizontal
+                        if ((temEsquerda || temDireita) && !temCima && !temBaixo) {
+                            if (!temEsquerda && temDireita) celulaDOM.classList.add('proa-h');
+                            else if (temEsquerda && temDireita) celulaDOM.classList.add('meio-h');
+                            else if (temEsquerda && !temDireita) celulaDOM.classList.add('popa-h');
+                        }
+                        // Tratamento de Orientação Vertical
+                        else if ((temCima || temBaixo) && !temEsquerda && !temDireita) {
+                            if (!temCima && temBaixo) celulaDOM.classList.add('proa-v');
+                            else if (temCima && temBaixo) celulaDOM.classList.add('meio-v');
+                            else if (temCima && !temBaixo) celulaDOM.classList.add('popa-v');
+                        }
+                        // Casos de blocos isolados no clique provisório
+                        else {
+                            celulaDOM.classList.add('navio-solitario');
+                        }
+                    }
+                }
+            }
         }
 
         function limparSetup() {
@@ -226,7 +273,7 @@
                             tamanho++;
                             const vizinhos = [
                                 {r: atual.r-1, c: atual.c}, {r: atual.r+1, c: atual.c},
-                                {r: atual.r, c: atual.c-1}, {r: atual.r, c: atual.c+1}
+                                {r: atual.r, c: atual.c-1}, {r: Paradox = atual.r, c: atual.c+1}
                             ];
                             vizinhos.forEach(v => {
                                 if (v.r >= 0 && v.r < 8 && v.c >= 0 && v.c < 8) {
@@ -243,7 +290,7 @@
             }
 
             tamanhosEncontrados.sort((a,b) => b - a);
-            const valido = tamanhosEncontrados.length === 3 && tamanhosEncontrados[0] === 3 && tamanhosEncontrados[1] === 2 && tamanhosEncontrados[2] === 2;
+            const valido = tamanhosEncontrados.length === 3 && tamanhesEncontrados[0] === 3 && tamanhosEncontrados[1] === 2 && tamanhosEncontrados[2] === 2;
 
             if (!valido) {
                 alert("Frota inválida! Você precisa agrupar as células em: exatamente 1 barco contínuo de 3 blocos e 2 barcos contínuos de 2 blocos.");
@@ -281,8 +328,7 @@
 
         socket.on('revelar_posiciones_finais', (sala) => {
             const arena = document.getElementById('arena'); arena.innerHTML = '';
-            document.getElementById('turno-indicador').innerText = "⌛ PARTIDA ENCERRADA! Revelando posições das frotas...";
-            document.getElementById('btn-usar-bomba').style.display = 'none';
+            document.getElementById('turno-indicador').innerText = "⌛ PARTIDA ENCERRADA! Revelando posições frotas...";
 
             sala.jogadores.forEach((jog) => {
                 const box = document.createElement('div');
@@ -293,14 +339,12 @@
                 for (let r = 0; r < 8; r++) {
                     for (let c = 0; c < 8; c++) {
                         const cel = document.createElement('div'); cel.className = 'celula';
-                        let val = jog.tabuleiro[r][c];
-                        if (val === 1) cel.classList.add('revelado-fim');
-                        if (val === 2) cel.classList.add('agua');
-                        if (val === 3) cel.classList.add('fogo');
+                        cel.setAttribute('data-coor', `${r}-${c}`);
                         grid.appendChild(cel);
                     }
                 }
                 box.appendChild(grid); arena.appendChild(box);
+                atualizarEstiloEstrategicoNavios(jog.tabuleiro, false, box);
             });
         });
 
@@ -329,11 +373,8 @@
                 for (let r = 0; r < 8; r++) {
                     for (let c = 0; c < 8; c++) {
                         const cel = document.createElement('div'); cel.className = 'celula';
+                        cel.setAttribute('data-coor', `${r}-${c}`);
                         let val = jog.tabuleiro[r][c];
-
-                        if (val === 2) cel.classList.add('agua');
-                        if (val === 3) cel.classList.add('fogo');
-                        if (val === 1 && jog.id === meuId) cel.classList.add('meu-navio');
 
                         if (jog.vivo && jog.id !== meuId && sala.jogadores[sala.turnoAtual].id === meuId && (val < 2 || modoBombaAtivo)) {
                             cel.style.cursor = 'crosshair';
@@ -346,6 +387,21 @@
                     }
                 }
                 box.appendChild(grid); arena.appendChild(box);
+                
+                // Filtra para renderizar os navios unificados do próprio jogador ou o tabuleiro inteiro se o jogo acabou
+                if (jog.id === meuId) {
+                    atualizarEstiloEstrategicoNavios(jog.tabuleiro, false, box);
+                } else {
+                    // Para inimigos, atualiza apenas os blocos que já são água/fogo (para manter os ocultos escondidos)
+                    for(let r=0; r<8; r++){
+                        for(let c=0; c<8; c++){
+                            let val = jog.tabuleiro[r][c];
+                            let celDom = box.querySelector(`[data-coor="${r}-${c}"]`);
+                            if(val === 2) celDom.classList.add('agua');
+                            if(val === 3) celDom.classList.add('fogo');
+                        }
+                    }
+                }
             });
         }
 
@@ -369,7 +425,6 @@
             });
         });
 
-        // Força a renderização inicial do grid assim que a página é carregada por completo
         window.addEventListener('DOMContentLoaded', () => {
             gerarGridSetup();
         });

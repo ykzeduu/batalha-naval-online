@@ -1,5 +1,5 @@
 /* ==========================================================================
-   RESET E CENÁRIO DE FLORESTA COM TEXTURA RETRÔ
+   RESET E GRID DO PLANO DE FUNDO CENTRALIZADO
    ========================================================================== */
 * {
     box-sizing: border-box;
@@ -19,57 +19,51 @@ body {
     text-align: center;
     padding: 20px;
     min-height: 100vh;
-    position: relative;
-    overflow-x: hidden;
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
+    overflow-x: hidden;
+    position: relative;
 }
 
-/* ==========================================================================
-   DECORAÇÃO DE ÁRVORES ESPALHADAS (NÃO DESALINHAM O CONTEÚDO)
-   ========================================================================== */
-.floresta {
-    position: absolute;
+/* Árvores com posições fixas reais, sem quebrar ou empurrar elementos centrais */
+.decoracao-floresta {
+    position: fixed;
     font-size: 24px;
     line-height: 38px;
     letter-spacing: 6px;
-    opacity: 0.75;
+    opacity: 0.35;
     pointer-events: none;
     user-select: none;
     z-index: 1;
 }
-
-.canto-superior-esquerdo { top: 30px; left: 40px; text-align: left; }
-.canto-superior-direito  { top: 30px; right: 40px; text-align: right; }
-.canto-inferior-esquerdo { bottom: 30px; left: 40px; text-align: left; }
-.canto-inferior-direito  { bottom: 30px; right: 40px; text-align: right; }
+.topo-esquerda  { top: 40px; left: 40px; text-align: left; }
+.topo-direita   { top: 40px; right: 40px; text-align: right; }
+.baixo-esquerda { bottom: 40px; left: 40px; text-align: left; }
+.baixo-direito  { bottom: 40px; right: 40px; text-align: right; }
 
 h1 { 
     color: #f8fafc; 
-    text-shadow: 2px 2px 0px #0f172a;
+    text-shadow: 3px 3px 0px #0f172a;
     margin-bottom: 20px;
-    font-size: 2.5rem;
-    z-index: 10;
+    font-size: 2.6rem;
     position: relative;
+    z-index: 5;
 }
 
 h2, h3 {
     text-shadow: 1px 1px 2px #0f172a;
-    position: relative;
-    z-index: 10;
     margin-bottom: 10px;
+    position: relative;
+    z-index: 5;
 }
 
 /* ==========================================================================
-   ALINHAMENTO CENTRALIZADO INTEGRAL
+   CONTAINERS E ELEMENTOS DE INTERFACE CENTRAIS
    ========================================================================== */
 .container-tela { 
     width: 100%;
-    max-width: 1200px; 
-    margin: 0 auto; 
-    padding: 10px;
     display: flex;
     flex-direction: column;
     align-items: center; 
@@ -81,24 +75,22 @@ h2, h3 {
 .card {
     background: #0f172a; 
     border: 4px solid #1e293b;
-    padding: 25px; 
+    padding: 30px; 
     border-radius: 16px; 
     display: flex;
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    min-width: 380px;
-    max-width: 100%;
+    width: 100%;
+    max-width: 440px;
     margin: 15px auto;
     box-shadow: 0 20px 40px rgba(0,0,0,0.6);
-    position: relative;
-    z-index: 10;
 }
 
 hr {
     border: 0;
     border-top: 2px solid #1e293b;
-    margin: 15px 0;
+    margin: 18px 0;
     width: 100%;
 }
 
@@ -111,7 +103,7 @@ input {
     background: #020617; 
     color: #fff; 
     text-align: center;
-    margin-bottom: 10px;
+    margin-bottom: 12px;
 }
 
 button {
@@ -126,12 +118,10 @@ button {
     font-size: 14px;
     transition: all 0.15s ease;
 }
-
 button:hover { 
     background: #10b981; 
-    transform: scale(1.03);
+    transform: scale(1.04);
 }
-
 button:disabled { 
     background: #334155; 
     border-color: #475569;
@@ -141,171 +131,140 @@ button:disabled {
 }
 
 /* ==========================================================================
-   CONFIGURAÇÃO ESTÁVEL DO CONTAINER DO TABULEIRO
+   ESTRUTURA MATRIZ DO MAR (8X8) CORRIGIDA E CENTRALIZADA
    ========================================================================== */
 .setup-container { 
     display: flex; 
     flex-direction: column;
     align-items: center; 
     justify-content: center;
-    gap: 30px; 
-    margin-top: 15px; 
+    gap: 25px; 
     width: 100%;
 }
 
-/* Forçado display grid constante com máxima prioridade para o mar não sumir */
-.grid-8x8, #meu-grid-setup {
+.grid-8x8 {
     display: grid !important; 
     grid-template-columns: repeat(8, 44px) !important;
     grid-template-rows: repeat(8, 44px) !important; 
     gap: 0px !important; 
     background: #023e8a; 
-    padding: 14px; 
+    padding: 12px; 
     border-radius: 14px;
     border: 6px solid #b5838d; 
-    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.8);
-    width: fit-content !important;
-    margin: 0 auto !important;
+    box-shadow: 0 15px 35px rgba(0, 0, 0, 0.7);
+    width: fit-content;
+    margin: 0 auto;
 }
 
-/* ==========================================================================
-   ELEMENTOS INTERNOS DO MAR (TEXTURA NATURAL FLUÍDA)
-   ========================================================================== */
 .celula { 
     background-color: #0077b6; 
     background-image: 
-        radial-gradient(circle at 30% 30%, #0096c7 10%, transparent 11%),
-        radial-gradient(circle at 70% 70%, #0096c7 8%, transparent 9%);
+        radial-gradient(circle at 35% 35%, #0096c7 12%, transparent 13%),
+        radial-gradient(circle at 75% 75%, #0096c7 8%, transparent 9%);
     background-size: 44px 44px; 
-    border: 0.5px solid rgba(255, 255, 255, 0.08); 
-    transition: background-color 0.2s;
+    border: 0.5px solid rgba(255, 255, 255, 0.1); 
     width: 44px;
     height: 44px;
     position: relative;
+    transition: background 0.15s;
 }
-
 .celula:hover { 
     background-color: #0096c7;
-    box-shadow: inset 0 0 8px rgba(255, 255, 255, 0.3);
+    box-shadow: inset 0 0 8px rgba(255, 255, 255, 0.4);
 }
 
 .agua { 
     background-color: #475569 !important; 
-    background-image: radial-gradient(circle at 50% 50%, #64748b 10%, transparent 50%) !important;
+    background-image: radial-gradient(circle at 50% 50%, #64748b 12%, transparent 45%) !important;
     border-color: #334155 !important;
-    box-shadow: inset 0 0 10px rgba(0,0,0,0.5) !important;
 }
 
 /* ==========================================================================
-   VISUAL DO BARCO UNIFICADO CONTÍNUO
+   ESTILIZAÇÃO UNIFICADA EDIÇÃO PREMIUM DOS SHADERS DE NAVIO
    ========================================================================== */
-.meu-navio { 
+.meu-navio {
     background: #2b2b2b !important;
-    border: none !important; 
-    box-shadow: inset 0 -3px 0px #1a1a1a !important;
-    z-index: 5;
+    border: none !important;
+    box-shadow: inset 0 -4px 0px #151515 !important;
 }
 
+/* Base de escotilha cilíndrica padrão */
 .meu-navio::after {
     content: '';
     position: absolute;
-    top: 38%; left: 38%; width: 24%; height: 24%;
     background: #38bdf8;
-    border: 1px solid #111;
+    border: 1.5px solid #111;
     border-radius: 50%;
-    z-index: 6;
+    z-index: 10;
 }
 
-/* --- ADJACÊNCIA HORIZONTAL --- */
-.meu-navio:has(+ .meu-navio) {
+/* --- TEXTURAS HORIZONTAIS --- */
+.proa-h {
     border-top-left-radius: 22px 22px !important;
     border-bottom-left-radius: 22px 22px !important;
-    background: linear-gradient(90deg, #1f1f1f, #2b2b2b) !important;
+    background: linear-gradient(90deg, #151515 10%, #2b2b2b 80%) !important;
+}
+.proa-h::after { top: 38%; left: 45%; width: 24%; height: 24%; }
+
+.meio-h::after { 
+    top: 30%; left: 30%; width: 40%; height: 40%; 
+    background: #f59e0b; border-radius: 4px; 
 }
 
-.grid-8x8 .meu-navio + .meu-navio:not(:has(+ .meu-navio)) {
+.popa-h {
     border-top-right-radius: 8px !important;
     border-bottom-right-radius: 8px !important;
-    background: linear-gradient(270deg, #1f1f1f, #2b2b2b) !important;
+    background: linear-gradient(270deg, #151515 10%, #2b2b2b 80%) !important;
 }
-.grid-8x8 .meu-navio + .meu-navio:not(:has(+ .meu-navio))::after {
-    background: #ef4444; border-radius: 2px; width: 6px; height: 6px; left: 65%;
-}
+.popa-h::after { top: 40%; left: 25%; width: 20%; height: 20%; background: #ef4444; }
 
-.grid-8x8 .meu-navio:has(+ .meu-navio) + .meu-navio:has(+ .meu-navio) {
-    background: #2b2b2b !important;
-}
-.grid-8x8 .meu-navio:has(+ .meu-navio) + .meu-navio:has(+ .meu-navio)::after {
-    border-radius: 2px; width: 40%; height: 40%; left: 30%; top: 30%;
-    background: #f59e0b;
-}
-
-/* --- ADJACÊNCIA VERTICAL (USANDO DATA-ATTRIBUTES DO JS) --- */
-.meu-navio[data-v-peca="proa"] {
+/* --- TEXTURAS VERTICAIS CORRIGIDAS --- */
+.proa-v {
     border-top-left-radius: 22px 22px !important;
     border-top-right-radius: 22px 22px !important;
-    background: linear-gradient(180deg, #1f1f1f, #2b2b2b) !important;
+    background: linear-gradient(180deg, #151515 10%, #2b2b2b 80%) !important;
+}
+.proa-v::after { top: 45%; left: 38%; width: 24%; height: 24%; }
+
+.meio-v::after { 
+    top: 30%; left: 30%; width: 40%; height: 40%; 
+    background: #f59e0b; border-radius: 4px; 
 }
 
-.meu-navio[data-v-peca="popa"] {
+.popa-v {
     border-bottom-left-radius: 8px !important;
     border-bottom-right-radius: 8px !important;
-    background: linear-gradient(0deg, #1f1f1f, #2b2b2b) !important;
+    background: linear-gradient(0deg, #151515 10%, #2b2b2b 80%) !important;
 }
-.meu-navio[data-v-peca="popa"]::after {
-    background: #ef4444; border-radius: 2px; width: 6px; height: 6px; top: 65%; left: 45%;
-}
+.popa-v::after { top: 25%; left: 40%; width: 20%; height: 20%; background: #ef4444; }
 
-.meu-navio[data-v-peca="meio"] {
-    background: #2b2b2b !important;
+/* Navio Solitário (Enquanto o jogador monta) */
+.navio-solitario {
+    border-radius: 10px !important;
 }
-.meu-navio[data-v-peca="meio"]::after {
-    border-radius: 2px; width: 40%; height: 40%; left: 30%; top: 30%;
-    background: #f59e0b;
-}
+.navio-solitario::after { top: 38%; left: 38%; width: 24%; height: 24%; }
 
 /* ==========================================================================
-   EFEITOS DE TIRO E DINÂMICA
+   MECÂNICAS DE COMBATE E TABELAS
    ========================================================================== */
 .fogo { 
     background: radial-gradient(circle, #ff0055 20%, #4a0010 90%) !important; 
     box-shadow: 0 0 15px #ff5555 !important;
 }
-.fogo::after { display: none; }
+.fogo::after { display: none !important; }
 .fogo::before {
     content: '💥'; position: absolute; font-size: 20px;
-    top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 10;
-}
-
-.revelado-fim {
-    background: linear-gradient(135deg, #ff9f1c 0%, #ff4d6d 100%) !important;
-    border: 2px solid #fff !important;
-    box-shadow: 0 0 15px #ff9f1c !important;
+    top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 12;
 }
 
 #arena { 
-    display: flex; flex-wrap: wrap; justify-content: center; gap: 30px; margin-top: 20px; width: 100%;
+    display: flex; flex-wrap: wrap; justify-content: center; gap: 25px; margin-top: 20px; width: 100%;
 }
-
 .tabuleiro-container { background: #0f172a; padding: 16px; border-radius: 16px; border: 4px solid #1e293b; }
-.player-morto { opacity: 0.3; border-color: #ef4444; }
-.alerta {
-    position: fixed; top: 25px; left: 50%; transform: translateX(-50%);
-    background: #dc2626; color: white; padding: 14px 40px; font-weight: bold;
-    border-radius: 50px; box-shadow: 0 10px 30px rgba(0,0,0,0.7); z-index: 10000;
-}
+.player-morto { opacity: 0.35; border-color: #ef4444; }
 
-/* ==========================================================================
-   ESTRUTURAS EXTRAS (TABELAS E LOBBIES)
-   ========================================================================== */
-.item-sala {
-    display: flex; justify-content: space-between; align-items: center;
-    background: #020617; padding: 10px 15px; margin: 8px 0; border-radius: 8px;
-    border: 1px solid #1e293b; width: 100%; min-width: 300px;
-}
-
-table { width: 100%; border-collapse: collapse; margin-top: 25px; background: #020617; border-radius: 12px; overflow: hidden; }
-th, td { padding: 15px; border-bottom: 1px solid #1e293b; text-align: center; }
+table { width: 100%; border-collapse: collapse; margin-top: 20px; background: #020617; border-radius: 12px; overflow: hidden; }
+th, td { padding: 14px; border-bottom: 1px solid #1e293b; text-align: center; }
 th { background-color: #0f172a; color: #38bdf8; }
 .rank-vencedor { background-color: rgba(16, 185, 129, 0.15); color: #34d399; }
 
