@@ -9,7 +9,7 @@
 
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background-color: #0d1117;
+    background-color: #0b0f19;
     color: #c9d1d9;
     text-align: center;
     padding: 20px;
@@ -17,8 +17,8 @@ body {
 }
 
 h1 { 
-    color: #58a6ff; 
-    text-shadow: 0 0 15px rgba(88, 166, 255, 0.3);
+    color: #38bdf8; 
+    text-shadow: 0 0 15px rgba(56, 189, 248, 0.4);
     margin-bottom: 20px;
 }
 
@@ -36,31 +36,30 @@ h2 {
 }
 
 .card {
-    background: #161b22; 
-    border: 1px solid #30363d;
+    background: #151d30; 
+    border: 1px solid #233554;
     padding: 25px; 
-    border-radius: 10px; 
+    border-radius: 12px; 
     display: inline-block; 
     min-width: 320px;
     max-width: 100%;
     margin: 20px auto;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+    box-shadow: 0 10px 30px rgba(0,0,0,0.6);
 }
 
 hr {
     border: 0;
-    border-top: 1px solid #30363d;
+    border-top: 1px solid #233554;
     margin: 15px 0;
 }
 
-/* Elementos de Formulário */
 input {
     display: block;
     width: 100%;
     padding: 12px; 
     border-radius: 6px; 
-    border: 1px solid #30363d;
-    background: #0d1117; 
+    border: 1px solid #233554;
+    background: #0b0f19; 
     color: #fff; 
     font-size: 15px; 
     margin: 10px 0; 
@@ -68,12 +67,13 @@ input {
 }
 
 input:focus {
-    border-color: #58a6ff;
+    border-color: #38bdf8;
     outline: none;
+    box-shadow: 0 0 10px rgba(56, 189, 248, 0.2);
 }
 
 button {
-    background: #238636; 
+    background: #10b981; 
     color: white; 
     font-weight: bold;
     border: none; 
@@ -82,47 +82,47 @@ button {
     cursor: pointer; 
     margin: 8px;
     font-size: 14px;
-    transition: background 0.2s, transform 0.1s;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.2);
 }
 
 button:hover { 
-    background: #2ea043; 
+    background: #059669; 
+    transform: translateY(-1px);
 }
 
 button:disabled { 
-    background: #21262d; 
-    color: #8b949e; 
+    background: #1e293b; 
+    color: #64748b; 
     cursor: not-allowed; 
+    box-shadow: none;
 }
 
-/* Lista de Lobbies na Tela Inicial */
 #lista-salas-container { 
     margin: 20px auto; 
     max-width: 550px; 
 }
 
 .item-sala {
-    background: #161b22; 
+    background: #151d30; 
     padding: 14px; 
     margin: 10px 0; 
-    border-radius: 6px;
+    border-radius: 8px;
     display: flex; 
     justify-content: space-between; 
     align-items: center;
-    border: 1px solid #30363d;
+    border: 1px solid #233554;
 }
 
-/* Moderação (Botão Kick) */
 .btn-kick { 
-    background: #da3637; 
+    background: #ef4444; 
     padding: 5px 10px; 
     font-size: 12px; 
     margin-left: 15px;
     border-radius: 4px;
 }
-.btn-kick:hover { background: #f85149; }
+.btn-kick:hover { background: #dc2626; }
 
-/* Lista de Jogadores no Lobby */
 #lista-jogadores-lobby {
     list-style: none;
     text-align: left;
@@ -132,14 +132,14 @@ button:disabled {
 
 #lista-jogadores-lobby li {
     padding: 8px 0;
-    border-bottom: 1px solid #21262d;
+    border-bottom: 1px solid #233554;
     display: flex;
     justify-content: space-between;
     align-items: center;
 }
 
 /* ==========================================================================
-   OS TABULEIROS (GRID 8x8) E TEXTURA DA ÁGUA
+   OS TABULEIROS (GRID 8x8) E TEXTURA DE ÁGUA ANTES DO TIRO
    ========================================================================== */
 .setup-container { 
     display: flex; 
@@ -149,76 +149,127 @@ button:disabled {
     margin-top: 25px; 
 }
 
-/* Correção crucial: Alvos vinculados tanto por classe quanto por ID do Setup */
 .grid-8x8, #meu-grid-setup {
     display: grid !important; 
-    grid-template-columns: repeat(8, 38px) !important;
-    grid-template-rows: repeat(8, 38px) !important; 
-    gap: 4px; 
-    background: #1f293d; 
-    padding: 10px; 
-    border-radius: 8px;
-    border: 2px solid #38bdf8;
-    box-shadow: 0 0 15px rgba(56, 189, 248, 0.2);
+    grid-template-columns: repeat(8, 42px) !important;
+    grid-template-rows: repeat(8, 42px) !important; 
+    gap: 3px; 
+    background: #0f172a; 
+    padding: 12px; 
+    border-radius: 10px;
+    border: 2px solid #1e293b;
+    box-shadow: 0 0 25px rgba(0, 0, 0, 0.7);
     width: fit-content;
     margin: 0 auto;
 }
 
-/* TEXTURA DA ÁGUA BASE (Efeito Radar / Sci-Fi) */
+/* DESIGN DA ÁGUA ATIVA (Antes de levar tiro: Azul Tecnológico com Grade) */
 .celula { 
-    background-color: #0b132b; 
-    background-image: radial-gradient(rgba(56, 189, 248, 0.15) 1px, transparent 0);
-    background-size: 8px 8px;
-    border: 1px solid rgba(56, 189, 248, 0.2);
+    background-color: #1e293b; 
+    background-image: 
+        linear-gradient(rgba(56, 189, 248, 0.08) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(56, 189, 248, 0.08) 1px, transparent 1px);
+    background-size: 10px 10px;
+    border: 1px solid rgba(56, 189, 248, 0.15);
     border-radius: 4px; 
     transition: all 0.15s ease;
-    width: 38px;
-    height: 38px;
+    width: 42px;
+    height: 42px;
+    position: relative;
 }
 
 .celula:hover { 
-    background-color: rgba(56, 189, 248, 0.25);
+    background-color: rgba(56, 189, 248, 0.18);
     border-color: #38bdf8;
-    box-shadow: 0 0 8px rgba(56, 189, 248, 0.5);
+    box-shadow: inset 0 0 8px rgba(56, 189, 248, 0.4);
+}
+
+/* DESIGN DA ÁGUA ERREI O TIRO (Água Cinza Sem Vida / Névoa) */
+.agua { 
+    background-color: #334155 !important; 
+    background-image: radial-gradient(circle, #475569 20%, transparent 70%) !important;
+    border-color: #475569 !important;
+    box-shadow: inset 0 0 10px rgba(0,0,0,0.6) !important;
 }
 
 /* ==========================================================================
-   SKINS E EFEITOS DOS QUADRADOS
+   DESIGN REALISTA E DETALHADO DOS NAVIOS (PROA, MEIO E POPA AUTOMÁTICOS)
    ========================================================================== */
-/* Navio Vivo (Design de Blindagem Cinza Militar) */
 .meu-navio { 
-    background: linear-gradient(135deg, #6e7681 0%, #484f58 100%) !important; 
-    border: 2px solid #8b949e !important;
-    position: relative;
-    box-shadow: inset 0 0 6px rgba(0, 0, 0, 0.8) !important;
+    background: linear-gradient(135deg, #64748b 0%, #475569 100%) !important; 
+    border: 1px solid #94a3b8 !important;
+    box-shadow: inset 0 0 8px rgba(0, 0, 0, 0.6) !important;
+    border-radius: 4px !important;
 }
 
-/* Escotilha/Detalhe no centro do barco */
+/* Escotilhas/Detalhes Padrão no Centro de Cada Pedaço */
 .meu-navio::before {
-    content: ''; 
+    content: '';
     position: absolute;
-    top: 30%; 
-    left: 30%; 
-    width: 40%; 
-    height: 40%;
-    background-color: #f0883e; 
-    border-radius: 3px;
-    box-shadow: 0 0 4px rgba(0,0,0,0.5);
+    top: 40%; left: 40%; width: 20%; height: 20%;
+    background-color: #1e293b;
+    border-radius: 50%;
+    border: 1px solid #94a3b8;
 }
 
-/* Tiro na Água (Efeito de Ondulação/Profundidade Azul Clara) */
-.agua { 
-    background-color: #0052cc !important; 
-    background-image: radial-gradient(circle, #38bdf8 20%, transparent 60%) !important;
-    border-color: #38bdf8 !important;
-    box-shadow: inset 0 0 10px rgba(0,0,0,0.8) !important;
+/* --- DETECÇÃO HORIZONTAL --- */
+
+/* Ponta Esquerda (Proa Horizontal) */
+.meu-navio:has(+ .meu-navio) {
+    border-top-left-radius: 18px !important;
+    border-bottom-left-radius: 18px !important;
+    background: linear-gradient(90deg, #475569, #64748b) !important;
 }
+.meu-navio:has(+ .meu-navio)::before {
+    left: 55%; /* Move a cabine levemente para trás */
+    border-radius: 3px;
+}
+
+/* Ponta Direita (Popa Horizontal) */
+.grid-8x8 .meu-navio + .meu-navio:not(:has(+ .meu-navio)) {
+    border-top-right-radius: 18px !important;
+    border-bottom-right-radius: 18px !important;
+    background: linear-gradient(270deg, #475569, #64748b) !important;
+}
+.grid-8x8 .meu-navio + .meu-navio:not(:has(+ .meu-navio))::before {
+    left: 25%;
+    width: 25%;
+    background-color: #ef4444; /* Luz de popa vermelha tática */
+}
+
+/* Meio Horizontal (Se tem navio antes E depois) */
+.grid-8x8 .meu-navio:has(+ .meu-navio) + .meu-navio:has(+ .meu-navio) {
+    border-radius: 0px !important;
+    background: #475569 !important;
+}
+.grid-8x8 .meu-navio:has(+ .meu-navio) + .meu-navio:has(+ .meu-navio)::before {
+    top: 25%; left: 35%; width: 30%; height: 50%;
+    border-radius: 2px;
+    background-color: #f59e0b; /* Cabine central iluminada */
+}
+
+/* --- DETECÇÃO MULTIPLAYER / FOGO --- */
 
 /* Acerto no Navio (Fogo / Explosão) */
 .fogo { 
-    background: radial-gradient(circle, #f85149 30%, #8e1510 90%) !important; 
-    border: 1px solid #f85149 !important; 
-    box-shadow: 0 0 12px #f85149 !important;
+    background: radial-gradient(circle, #f43f5e 30%, #9f1239 80%) !important; 
+    border: 1px solid #f43f5e !important; 
+    box-shadow: 0 0 15px #f43f5e !important;
+}
+.fogo::before {
+    content: '🔥';
+    position: absolute;
+    font-size: 18px;
+    top: 50%; left: 50%;
+    transform: translate(-50%, -50%);
+    background: none; border: none;
+}
+
+/* Exposição de frotas sobreviventes no fim do round (Dourado/Neon) */
+.revelado-fim {
+    background: linear-gradient(135deg, #fbbf24 0%, #d97706 100%) !important;
+    border: 2px solid #fbbf24 !important;
+    box-shadow: 0 0 15px rgba(251, 191, 36, 0.7);
 }
 
 /* ==========================================================================
@@ -233,11 +284,11 @@ button:disabled {
 }
 
 .tabuleiro-container { 
-    background: #161b22; 
+    background: #151d30; 
     padding: 15px; 
-    border-radius: 10px; 
-    border: 1px solid #30363d; 
-    box-shadow: 0 4px 10px rgba(0,0,0,0.3);
+    border-radius: 12px; 
+    border: 1px solid #233554; 
+    box-shadow: 0 8px 20px rgba(0,0,0,0.4);
 }
 
 .tabuleiro-container h3 {
@@ -245,26 +296,33 @@ button:disabled {
     font-size: 16px;
 }
 
-/* Estado de Eliminação */
 .player-morto { 
-    opacity: 0.3; 
-    border: 2px dashed #f85149; 
+    opacity: 0.25; 
+    border: 2px dashed #ef4444; 
 }
 
-/* Notificações em tempo real */
+/* Notificações em tempo real flutuantes */
 .alerta {
     position: fixed; 
     top: 20px; 
     left: 50%; 
     transform: translateX(-50%);
-    background: #f85149; 
+    background: #ef4444; 
     color: white; 
-    padding: 12px 30px; 
+    padding: 12px 35px; 
     font-weight: bold;
     border-radius: 30px; 
-    box-shadow: 0 4px 15px rgba(0,0,0,0.5); 
+    box-shadow: 0 10px 25px rgba(0,0,0,0.6); 
     z-index: 9999;
     font-size: 15px;
+    border: 1px solid rgba(255,255,255,0.2);
+}
+
+#btn-usar-bomba {
+    font-weight: bold;
+    border-radius: 6px;
+    padding: 10px 15px;
+    transition: all 0.2s ease;
 }
 
 /* ==========================================================================
@@ -274,28 +332,29 @@ table {
     width: 100%; 
     border-collapse: collapse; 
     margin-top: 20px; 
-    background: #0d1117;
-    border-radius: 6px;
+    background: #0b0f19;
+    border-radius: 8px;
     overflow: hidden;
 }
 
 th, td { 
     padding: 14px; 
-    border-bottom: 1px solid #30363d; 
+    border-bottom: 1px solid #233554; 
     text-align: center; 
 }
 
 th { 
-    background-color: #21262d; 
-    color: #58a6ff; 
+    background-color: #151d30; 
+    color: #38bdf8; 
+    font-size: 14px;
 }
 
 .rank-vencedor { 
-    background-color: rgba(46, 160, 67, 0.15); 
-    color: #56d364; 
+    background-color: rgba(16, 185, 129, 0.12); 
+    color: #34d399; 
 }
 
-/* Responsividade Básica para Telas de Setup */
+/* Responsividade de Alinhamento */
 @media (min-width: 600px) {
     .setup-container {
         flex-direction: row;

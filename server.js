@@ -16,23 +16,21 @@ function criarTabuleiroVazio() {
 }
 
 io.on('connection', (socket) => {
-    // Lista de salas públicas (sem expor a senha real para o client)
     socket.emit('lista_salas', obterSalasPublicas());
 
-    // Criar Sala com Senha opcional
     socket.on('criar_sala', ({ nomeDono, senha }) => {
         const salaId = 'SALA_' + Math.random().toString(36).substring(2, 7).toUpperCase();
         
         salas[salaId] = {
             id: salaId,
             donoId: socket.id,
-            senha: senha || null, // Se vazio, é pública
+            senha: senha || null, 
             status: 'lobby',
             jogadores: [
-                { id: socket.id, nome: nomeDono || 'Jogador 1', tabuleiro: criarTabuleiroVazio(), pronto: false, isBot: false, vivo: true, estatisticas: { tirosDados: 0, tirosTomados: 0, abates: 0 } }
+                { id: socket.id, nome: nomeDono || 'Jogador 1', tabuleiro: criarTabuleiroVazio(), pronto: false, isBot: false, vivo: true, estatisticas: { tirosDados: 0, tirosTomados: 0, blocosAcertados: 0, abates: 0 }, bombas: 0, contadorParaBomba: 0 }
             ],
             turnoAtual: 0,
-            tirosRestantesNoTurno: 2 // Cada jogador começa com 2 tiros por turno
+            tirosRestantesNoTurno: 2 
         };
 
         socket.join(salaId);
@@ -41,7 +39,6 @@ io.on('connection', (socket) => {
         io.to(salaId).emit('atualizar_sala', filtrarDadosSala(salas[salaId]));
     });
 
-    // Entrar na Sala (Validando Senha)
     socket.on('entrar_sala', ({ salaId, nomeJogador, senhaInserida }) => {
         const sala = salas[salaId];
         if (!sala) return socket.emit('erro', 'Sala não encontrada.');
@@ -56,7 +53,9 @@ io.on('connection', (socket) => {
             pronto: false,
             isBot: false,
             vivo: true,
-            estatisticas: { tirosDados: 0, tirosTomados: 0, abates: 0 }
+            estatisticas: { tirosDados: 0, tirosTomados: 0, blocosAcertados: 0, abates: 0 },
+            bombas: 0,
+            contadorParaBomba: 0
         });
 
         socket.join(salaId);
@@ -64,7 +63,6 @@ io.on('connection', (socket) => {
         io.emit('lista_salas', obterSalasPublicas());
     });
 
-    // Adicionar/Remover Bot de dentro do Lobby
     socket.on('alternar_bot', ({ salaId, acao }) => {
         const sala = salas[salaId];
         if (!sala || sala.donoId !== socket.id || sala.status !== 'lobby') return;
@@ -77,10 +75,11 @@ io.on('connection', (socket) => {
                 pronto: true,
                 isBot: true,
                 vivo: true,
-                estatisticas: { tirosDados: 0, tirosTomados: 0, abates: 0 }
+                estatisticas: { tirosDados: 0, tirosTomados: 0, blocosAcertados: 0, abates: 0 },
+                bombas: 0,
+                contadorParaBomba: 0
             });
         } else if (acao === 'remover') {
-            // Remove o último bot da lista
             const idxBot = findLastIndex(sala.jogadores, j => j.isBot);
             if (idxBot !== -1) sala.jogadores.splice(idxBot, 1);
         }
@@ -89,7 +88,6 @@ io.on('connection', (socket) => {
         io.emit('lista_salas', obterSalasPublicas());
     });
 
-    // Kickar Jogador
     socket.on('kick_jogador', ({ salaId, jogadorId }) => {
         const sala = salas[salaId];
         if (!sala || sala.donoId !== socket.id) return;
@@ -108,7 +106,6 @@ io.on('connection', (socket) => {
     socket.on('iniciar_posicionamento', ({ salaId }) => {
         const sala = salas[salaId];
         if (!sala || sala.donoId !== socket.id) return;
-
         sala.status = 'posicionando';
         io.to(salaId).emit('fase_posicionamento', filtrarDadosSala(sala));
     });
@@ -125,11 +122,6 @@ io.on('connection', (socket) => {
 
         const todosProntos = sala.jogadores.every(j => j.pronto);
         if (todosProntos && sala.jogadores.length >= 2) {
-            // Garante que os bots tenham barcos gerados
-            sala.jogadores.forEach(j => {
-                if (j.isBot) j.tabuleiro = gerarTabuleiroBot();
-            });
-
             sala.status = 'jogando';
             sala.turnoAtual = encontrarProximoJogadorVivo(sala, 0);
             sala.tirosRestantesNoTurno = 2; 
@@ -139,9 +131,8 @@ io.on('connection', (socket) => {
         }
     });
 
-    // Lógica Avançada de Disparo (2 tiros + Detecção de Morte/Vitória)
-    socket.on('dar_tiro', ({ salaId, alvoIndex, linha, ...data }) => {
-        const coluna = data.coluna;
+    // LÓGICA DE TIRO ATUALIZADA (Tiro Normal ou Bomba em X)
+    socket.on('dar_tiro', ({ salaId, alvoIndex, linha, coluna, usarBomba }) => {
         const sala = salas[salaId];
         if (!sala || sala.status !== 'jogando') return;
 
@@ -149,30 +140,77 @@ io.on('connection', (socket) => {
         if (atirador.id !== socket.id || !atirador.vivo) return;
 
         const vitima = sala.jogadores[alvoIndex];
-        if (!vitima || !vitima.vivo || vitima.tabuleiro[linha][coluna] > 1) return;
+        if (!vitima || !vitima.vivo) return;
 
-        // Executa o tiro
-        atirador.estatisticas.tirosDados++;
-        vitima.estatisticas.tirosTomados++;
+        if (usarBomba) {
+            if (atirador.bombas <= 0) return socket.emit('erro', 'Você não possui bombas!');
+            atirador.bombas--;
 
-        if (vitima.tabuleiro[linha][coluna] === 1) {
-            vitima.tabuleiro[linha][coluna] = 3; // Fogo
-            // Verifica se a vítima perdeu todos os navios (morreu)
-            if (!verificarSeTemNavioVivo(vitima.tabuleiro)) {
+            // Definição do formato em X (Centro + 4 diagonais)
+            const alvosBomba = [
+                { r: linha, c: coluna },
+                { r: linha - 1, c: coluna - 1 },
+                { r: metaR = linha - 1, c: coluna + 1 },
+                { r: linha + 1, c: coluna - 1 },
+                { r: linha + 1, c: coluna + 1 }
+            ];
+
+            alvosBomba.forEach(alvo => {
+                if (alvo.r >= 0 && alvo.r < 8 && alvo.c >= 0 && alvo.c < 8) {
+                    let val = vitima.tabuleiro[alvo.r][alvo.c];
+                    if (val < 2) { 
+                        vitima.estatisticas.tirosTomados++;
+                        if (val === 1) {
+                            vitima.tabuleiro[alvo.r][alvo.c] = 3; // Fogo
+                            atirador.estatisticas.blocosAcertados++;
+                        } else {
+                            vitima.tabuleiro[alvo.r][alvo.c] = 2; // Água
+                        }
+                    }
+                }
+            });
+
+            atirador.estatisticas.tirosDados++;
+            // Verifica morte pós-explosão
+            if (vitima.vivo && !verificarSeTemNavioVivo(vitima.tabuleiro)) {
                 vitima.vivo = false;
                 atirador.estatisticas.abates++;
-                io.to(salaId).emit('notificacao', `${vitima.nome} foi completamente afundado por ${atirador.nome}!`);
+                io.to(salaId).emit('notificacao', `${vitima.nome} foi totalmente destruído pela bomba de ${atirador.nome}!`);
             }
+            
+            sala.tirosRestantesNoTurno = 0; // Usar bomba consome o resto do turno
         } else {
-            vitima.tabuleiro[linha][coluna] = 2; // Água
+            // Tiro normal
+            if (vitima.tabuleiro[linha][coluna] > 1) return;
+
+            atirador.estatisticas.tirosDados++;
+            vitima.estatisticas.tirosTomados++;
+
+            // Incrementa contador de ganho de bomba
+            atirador.contadorParaBomba++;
+            if (atirador.contadorParaBomba >= 5) {
+                atirador.bombas++;
+                atirador.contadorParaBomba = 0;
+                socket.emit('notificacao', '⚡ Você carregou uma Super Bomba em X!');
+            }
+
+            if (vitima.tabuleiro[linha][coluna] === 1) {
+                vitima.tabuleiro[linha][coluna] = 3;
+                atirador.estatisticas.blocosAcertados++;
+                
+                if (vitima.vivo && !verificarSeTemNavioVivo(vitima.tabuleiro)) {
+                    vitima.vivo = false;
+                    atirador.estatisticas.abates++;
+                    io.to(salaId).emit('notificacao', `${vitima.nome} foi completamente afundado por ${atirador.nome}!`);
+                }
+            } else {
+                vitima.tabuleiro[linha][coluna] = 2;
+            }
+            sala.tirosRestantesNoTurno--;
         }
 
-        sala.tirosRestantesNoTurno--;
-
-        // Verifica se há um vencedor antes de prosseguir
         if (verificarFimDeJogo(salaId)) return;
 
-        // Se acabaram os tiros ou o jogador atual morreu na rodada (improvável, mas por segurança), passa o turno
         if (sala.tirosRestantesNoTurno <= 0) {
             passarTurnoCompleto(salaId);
         } else {
@@ -200,58 +238,14 @@ function passarTurnoCompleto(salaId) {
 
     let proximoIdx = (sala.turnoAtual + 1) % sala.jogadores.length;
     sala.turnoAtual = encontrarProximoJogadorVivo(sala, proximoIdx);
-    sala.tirosRestantesNoTurno = 2; // Reseta os 2 tiros para o próximo
+    sala.tirosRestantesNoTurno = 2; 
 
     io.to(salaId).emit('atualizar_jogo', filtrarDadosSala(sala));
 
-    // Turno Inteligente do BOT (Executa 2 tiros seguidos)
     const atual = sala.jogadores[sala.turnoAtual];
     if (atual && atual.isBot && atual.vivo) {
         executarTurnoBotDuplo(salaId, atual);
     }
-}
-
-function executarTurnoBotDuplo(salaId, bot) {
-    const sala = salas[salaId];
-    if (!sala || sala.status !== 'jogando' || !bot.vivo) return;
-
-    setTimeout(() => {
-        // Encontra uma vítima viva válida
-        let alvosVivos = sala.jogadores.filter((j, i) => j.vivo && i !== sala.turnoAtual);
-        if (alvosVivos.length === 0) return;
-        let vitima = alvosVivos[Math.floor(Math.random() * alvosVivos.length)];
-        let alvoIndex = sala.jogadores.indexOf(vitima);
-
-        let l, c;
-        do {
-            l = Math.floor(Math.random() * 8);
-            c = Math.floor(Math.random() * 8);
-        } while (vitima.tabuleiro[l][c] > 1);
-
-        bot.estatisticas.tirosDados++;
-        vitima.estatisticas.tirosTomados++;
-
-        if (vitima.tabuleiro[l][c] === 1) {
-            vitima.tabuleiro[l][c] = 3;
-            if (!verificarSeTemNavioVivo(vitima.tabuleiro)) {
-                vitima.vivo = false;
-                bot.estatisticas.abates++;
-                io.to(salaId).emit('notificacao', `${vitima.nome} foi afundado pelo ${bot.nome}!`);
-            }
-        } else {
-            vitima.tabuleiro[l][c] = 2;
-        }
-
-        sala.tirosRestantesNoTurno--;
-
-        if (verificarFimDeJogo(salaId)) return;
-
-        if (sala.tirosRestantesNoTurno > 0) {
-            executarTurnoBotDuplo(salaId, bot); // Dá o segundo tiro
-        } else {
-            passarTurnoCompleto(salaId);
-        }
-    }, 1000);
 }
 
 function verificarSeTemNavioVivo(tab) {
@@ -267,19 +261,70 @@ function encontrarProximoJogadorVivo(sala, idxInicial) {
     return idxInicial;
 }
 
+function executarTurnoBotDuplo(salaId, bot) {
+    const sala = salas[salaId];
+    if (!sala || sala.status !== 'jogando' || !bot.vivo) return;
+
+    setTimeout(() => {
+        let alvosVivos = sala.jogadores.filter((j, i) => j.vivo && i !== sala.turnoAtual);
+        if (alvosVivos.length === 0) return;
+        
+        let vitima = alvosVivos[Math.floor(Math.random() * alvosVivos.length)];
+        let l, c;
+        let tentativas = 0;
+        do {
+            l = Math.floor(Math.random() * 8);
+            c = Math.floor(Math.random() * 8);
+            tentativas++;
+        } while (vitima.tabuleiro[l][c] > 1 && tentativas < 100);
+
+        if (vitima.tabuleiro[l][c] > 1) return passarTurnoCompleto(salaId);
+
+        bot.estatisticas.tirosDados++;
+        vitima.estatisticas.tirosTomados++;
+
+        if (vitima.tabuleiro[l][c] === 1) {
+            vitima.tabuleiro[l][c] = 3;
+            bot.estatisticas.blocosAcertados++;
+            if (vitima.vivo && !verificarSeTemNavioVivo(vitima.tabuleiro)) {
+                vitima.vivo = false;
+                bot.estatisticas.abates++;
+                io.to(salaId).emit('notificacao', `${vitima.nome} foi afundado pelo ${bot.nome}!`);
+            }
+        } else {
+            vitima.tabuleiro[l][c] = 2;
+        }
+
+        sala.tirosRestantesNoTurno--;
+
+        if (verificarFimDeJogo(salaId)) return;
+
+        if (sala.tirosRestantesNoTurno > 0) {
+            setTimeout(() => { executarTurnoBotDuplo(salaId, bot); }, 1000);
+        } else {
+            passarTurnoCompleto(salaId);
+        }
+    }, 1000); 
+}
+
 function verificarFimDeJogo(salaId) {
     const sala = salas[salaId];
+    if (!sala) return false;
     const vivos = sala.jogadores.filter(j => j.vivo);
 
     if (vivos.length <= 1) {
-        sala.status = 'finalizado';
+        sala.status = 'revelando'; // Estado intermediário para mostrar o mapa
         const vencedor = vivos[0] || null;
+        const ranking = [...sala.jogadores].sort((a, b) => b.estatisticas.blocosAcertados - a.estatisticas.blocosAcertados);
         
-        // Constrói o Ranking
-        const ranking = [...sala.jogadores].sort((a, b) => b.estatisticas.abates - a.estatisticas.abates);
-        
-        io.to(salaId).emit('fim_de_jogo', { vencedor: vencedor ? vencedor.nome : 'Ninguém', ranking });
-        delete salas[salaId]; // Limpa a sala do servidor
+        // Emite evento de revelação imediata de 5 segundos
+        io.to(salaId).emit('revelar_posicoes_finais', filtrarDadosSala(sala));
+
+        setTimeout(() => {
+            io.to(salaId).emit('fim_de_jogo', { vencedor: vencedor ? vencedor.nome : 'Ninguém', ranking });
+            delete salas[salaId]; 
+        }, 5000);
+
         io.emit('lista_salas', obterSalasPublicas());
         return true;
     }
@@ -293,7 +338,6 @@ function obterSalasPublicas() {
 }
 
 function filtrarDadosSala(sala) {
-    // Retorna a estrutura da sala ocultando a senha real do backend
     return { ...sala, senha: !!sala.senha };
 }
 
