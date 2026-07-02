@@ -1,0 +1,13 @@
+{
+  "name": "batalha-naval-4p",
+  "version": "1.0.0",
+  "description": "Batalha Naval Multiplayer para até 4 jogadores",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.19.2",
+    "socket.io": "^4.7.5"
+  }
+}

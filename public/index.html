@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <title>Batalha Naval 4 Quadrantes</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="/socket.io/socket.io.js"></script>
+</head>
+<body>
+    <h1>Batalha Naval Online (Até 4p / Bots)</h1>
+    <div id="lobby">
+        <p id="status-lobby">Aguardando jogadores...</p>
+        <button id="btn-comecar" onclick="iniciarJogo()">Começar Jogo (Preencher com Bots)</button>
+    </div>
+
+    <h2 id="turno-indicador"></h2>
+    <div id="arena"></div>
+
+    <script>
+        const socket = io();
+        let meuId = null;
+        let estadoSala = null;
+
+        socket.on('connect', () => { meuId = socket.id; });
+
+        socket.on('atualizar_sala', (sala) => {
+            document.getElementById('status-lobby').innerText = `Jogadores conectados: ${sala.jogadores.length}/4`;
+        });
+
+        function iniciarJogo() {
+            socket.emit('iniciar_jogo');
+        }
+
+        socket.on('jogo_iniciado', (sala) => {
+            document.getElementById('lobby').style.display = 'none';
+            renderizarArena(sala);
+        });
+
+        socket.on('atualizar_jogo', (sala) => {
+            renderizarArena(sala);
+        });
+
+        function renderizarArena(sala) {
+            estadoSala = sala;
+            const arena = document.getElementById('arena');
+            arena.innerHTML = '';
+
+            const jogadorDaVez = sala.jogadores[sala.turnoAtual];
+            document.getElementById('turno-indicador').innerText = `Vez de: ${jogadorDaVez.nome}`;
+
+            sala.jogadores.forEach((jog, idx) => {
+                const divTabuleiro = document.createElement('div');
+                divTabuleiro.className = 'tabuleiro-container';
+                
+                const titulo = document.createElement('h3');
+                titulo.innerText = jog.id === meuId ? `${jog.nome} (Você)` : jog.nome;
+                divTabuleiro.appendChild(titulo);
+
+                const grid = document.createElement('div');
+                grid.className = 'grid';
+
+                for (let r = 0; r < 5; r++) {
+                    for (let c = 0; c < 5; c++) {
+                        const celula = document.createElement('div');
+                        celula.className = 'celula';
+                        
+                        let valor = jog.tabuleiro[r][c];
+                        // Cores baseadas no estado
+                        if (valor === 2) celula.classList.add('agua');
+                        if (valor === 3) celula.classList.add('fogo');
+                        
+                        // Só mostra os próprios navios vivos
+                        if (valor === 1 && jog.id === meuId) {
+                            celula.classList.add('meu-navio');
+                        }
+
+                        // Evento de clique para atirar no inimigo
+                        if (jog.id !== meuId && sala.jogadores[sala.turnoAtual].id === meuId && valor < 2) {
+                            celula.style.cursor = 'pointer';
+                            celula.onclick = () => atirar(idx, r, c);
+                        }
+
+                        grid.appendChild(celula);
+                    }
+                }
+                divTabuleiro.appendChild(grid);
+                arena.appendChild(divTabuleiro);
+            });
+        }
+
+        function atirar(alvoIndex, linha, coluna) {
+            socket.emit('dar_tiro', { alvoIndex, linha, coluna });
+        }
+    </script>
+</body>
+</html>
