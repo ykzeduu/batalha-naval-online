@@ -20,7 +20,9 @@
         </div>
 
         <h3>Lobbies Ativos:</h3>
-        <div id="lista-salas-container"></div>
+        <div id="lista-salas-container">
+            <p>Nenhum lobby ativo no momento...</p>
+        </div>
     </div>
 
     <div id="tela-lobby" class="container-tela" style="display:none;">
@@ -31,7 +33,7 @@
                 <button onclick="configBot('adicionar')">+ Adicionar Bot</button>
                 <button onclick="configBot('remover')">- Remover Bot</button>
             </div>
-            <h3>Jogadores:</h3>
+            <h3>Jogadores conectados:</h3>
             <ul id="lista-jogadores-lobby"></ul>
             <br>
             <button id="btn-master-start" style="display:none;" onclick="iniciarPosicionamento()">Mudar para Preparação</button>
@@ -53,20 +55,20 @@
 
     <div id="tela-jogo" class="container-tela" style="display:none;">
         <h2 id="turno-indicador">Vez de: -</h2>
-        <h3 id="tiros-indicador" style="color: #ffb86c;">Tiros restantes: 2</h3>
+        <h3 id="tiros-indicador" style="color: #ffb86c;">Tiros restantes na rodada: 2</h3>
         <div id="arena"></div>
     </div>
 
     <div id="tela-final" class="container-tela" style="display:none;">
         <h1>Fim de Jogo!</h1>
-        <h2 id="vencedor-destaque" style="color: #50fa7b;">Vencedor: -</h2>
-        <div class="card" style="width: 80%;">
+        <h2 id="vencedor-destaque" style="color: #56d364;">Vencedor: -</h2>
+        <div class="card" style="width: 85%;">
             <h3>Classificação Geral & Estatísticas:</h3>
             <table id="tabela-ranking">
                 <thead>
                     <tr>
                         <th>Jogador</th>
-                        <th>Abates (Inimigos Afundados)</th>
+                        <th>Abates (Navios Afundados)</th>
                         <th>Tiros Disparados</th>
                         <th>Tiros Recebidos</th>
                         <th>Status</th>
@@ -88,6 +90,7 @@
 
         socket.on('connect', () => { meuId = socket.id; });
 
+        // Atualiza dinamicamente a lista de lobbies públicos/privados
         socket.on('lista_salas', (salas) => {
             const container = document.getElementById('lista-salas-container');
             container.innerHTML = salas.length === 0 ? '<p>Nenhum lobby ativo no momento...</p>' : '';
@@ -104,7 +107,7 @@
         function criarSala() {
             const nome = document.getElementById('input-nome').value.trim();
             const senha = document.getElementById('input-senha-criar').value;
-            if(!nome) return alert('Insira seu nome!');
+            if(!nome) return alert('Insira seu nome primeiro!');
             socket.emit('criar_sala', { nomeDono: nome, senha: senha });
         }
 
@@ -114,7 +117,7 @@
             let senha = "";
             if (ePrivado) {
                 senha = prompt("Este lobby é privado. Digite a senha para entrar:");
-                if (senha === null) return;
+                if (senha === null) return; // Cancela ação se o player fechar o prompt
             }
             socket.emit('entrar_sala', { salaId: id, nomeJogador: nome, senhaInserida: senha });
         }
@@ -125,24 +128,33 @@
 
         socket.on('sala_criada', (id) => { minhaSalaId = id; });
 
+        // Gerenciamento da interface de Lobby
         socket.on('atualizar_sala', (sala) => {
             minhaSalaId = sala.id;
             document.getElementById('tela-inicial').style.display = 'none';
             document.getElementById('tela-lobby').style.display = 'block';
             document.getElementById('sala-titulo').innerText = `Lobby: ${sala.id}`;
 
+            // Se o usuário atual for o Dono da sala, libera os painéis de controle
             if(sala.donoId === meuId) {
                 document.getElementById('controles-bot-dono').style.display = 'block';
                 document.getElementById('btn-master-start').style.display = 'inline-block';
+            } else {
+                document.getElementById('controles-bot-dono').style.display = 'none';
+                document.getElementById('btn-master-start').style.display = 'none';
             }
 
             const lista = document.getElementById('lista-jogadores-lobby');
             lista.innerHTML = '';
             sala.jogadores.forEach(j => {
                 let li = document.createElement('li');
-                li.innerText = `${j.nome} ${j.isBot ? '[BOT]' : ''} ${j.id === sala.donoId ? '👑' : ''} ${j.pronto ? '✓' : ''}`;
+                li.innerText = `${j.nome} ${j.isBot ? '[BOT]' : ''} ${j.id === sala.donoId ? '👑' : ''} ${j.pronto ? '✓ Pronto' : ''}`;
+                
+                // Exibe botão de kick apenas para o líder chutar outros humanos
                 if(sala.donoId === meuId && j.id !== meuId && !j.isBot) {
-                    let b = document.createElement('button'); b.innerText = 'Kick'; b.className = 'btn-kick';
+                    let b = document.createElement('button'); 
+                    b.innerText = 'Kick'; 
+                    b.className = 'btn-kick';
                     b.onclick = () => socket.emit('kick_jogador', { salaId: sala.id, jogadorId: j.id });
                     li.appendChild(b);
                 }
@@ -150,23 +162,38 @@
             });
         });
 
-        socket.on('kickado', () => { alert('Você foi expulso da sala.'); location.reload(); });
+        socket.on('kickado', () => { 
+            alert('Você foi expulso da sala pelo administrador.'); 
+            location.reload(); 
+        });
+
         socket.on('erro', (msg) => alert(msg));
 
-        function iniciarPosicionamento() { socket.emit('iniciar_posicionamento', { salaId: minhaSalaId }); }
+        function iniciarPosicionamento() { 
+            socket.emit('iniciar_posicionamento', { salaId: minhaSalaId }); 
+        }
 
-        socket.on('fase_posicionamento', () => {
+        // CORREÇÃO: Aciona dinamicamente a criação das células ao abrir a aba
+        socket.on('fase_posicionamento', (sala) => {
             document.getElementById('tela-lobby').style.display = 'none';
             document.getElementById('tela-posicionamento').style.display = 'block';
+            
+            // Reseta estados locais preventivamente
+            meuTabuleiroSetup = Array(8).fill(0).map(() => Array(8).fill(0));
+            blocosMarcados = 0;
+            document.getElementById('contador-blocos').innerText = 0;
+            document.getElementById('btn-confirmar-frota').disabled = true;
+            
             gerarGridSetup();
         });
 
-        function generarGridSetup() {
+        function gerarGridSetup() {
             const container = document.getElementById('meu-grid-setup');
             container.innerHTML = '';
             for(let r=0; r<8; r++) {
                 for(let c=0; c<8; c++) {
-                    let cel = document.createElement('div'); cel.className = 'celula';
+                    let cel = document.createElement('div'); 
+                    cel.className = 'celula';
                     cel.onclick = () => alternarBloco(r, c, cel);
                     container.appendChild(cel);
                 }
@@ -175,10 +202,14 @@
 
         function alternarBloco(r, c, elemento) {
             if (meuTabuleiroSetup[r][c] === 0) {
-                if (blocosMarcados >= 7) return;
-                meuTabuleiroSetup[r][c] = 1; elemento.classList.add('meu-navio'); blocosMarcados++;
+                if (blocosMarcados >= 7) return alert('Frota completa! Desmarque algum bloco para alterar.');
+                meuTabuleiroSetup[r][c] = 1; 
+                elemento.classList.add('meu-navio'); 
+                blocosMarcados++;
             } else {
-                meuTabuleiroSetup[r][c] = 0; elemento.classList.remove('meu-navio'); blocosMarcados--;
+                meuTabuleiroSetup[r][c] = 0; 
+                elemento.classList.remove('meu-navio'); 
+                blocosMarcados--;
             }
             document.getElementById('contador-blocos').innerText = blocosMarcados;
             document.getElementById('btn-confirmar-frota').disabled = (blocosMarcados !== 7);
@@ -186,13 +217,15 @@
 
         function limparSetup() {
             meuTabuleiroSetup = Array(8).fill(0).map(() => Array(8).fill(0));
-            blocosMarcados = 0; document.getElementById('contador-blocos').innerText = 0;
-            document.getElementById('btn-confirmar-frota').disabled = true; generarGridSetup();
+            blocosMarcados = 0; 
+            document.getElementById('contador-blocos').innerText = 0;
+            document.getElementById('btn-confirmar-frota').disabled = true; 
+            gerarGridSetup();
         }
 
         function confirmarFrota() {
             socket.emit('tabuleiro_pronto', { salaId: minhaSalaId, tabuleiro: meuTabuleiroSetup });
-            document.getElementById('tela-posicionamento').innerHTML = '<h2>Aguardando frotas aliadas/inimigas...</h2>';
+            document.getElementById('tela-posicionamento').innerHTML = '<div class="card"><h2>Aguardando frotas inimigas se posicionarem...</h2></div>';
         }
 
         socket.on('jogo_iniciado', (sala) => {
@@ -201,16 +234,20 @@
             renderizarPartida(sala);
         });
 
-        socket.on('atualizar_jogo', (sala) => { renderizarPartida(sala); });
+        socket.on('atualizar_jogo', (sala) => { 
+            renderizarPartida(sala); 
+        });
 
+        // Alertas flutuantes no topo (notificações de mortes)
         socket.on('notificacao', (msg) => {
             const feed = document.getElementById('logs-feed');
             feed.innerHTML = `<div class="alerta">${msg}</div>`;
-            setTimeout(() => feed.innerHTML = '', 4000);
+            setTimeout(() => feed.innerHTML = '', 4500);
         });
 
         function renderizarPartida(sala) {
-            const arena = document.getElementById('arena'); arena.innerHTML = '';
+            const arena = document.getElementById('arena'); 
+            arena.innerHTML = '';
             const jVez = sala.jogadores[sala.turnoAtual];
             
             document.getElementById('turno-indicador').innerText = `Vez de: ${jVez.nome}`;
@@ -234,7 +271,7 @@
                         if (val === 3) cel.classList.add('fogo');
                         if (val === 1 && jog.id === meuId) cel.classList.add('meu-navio');
 
-                        // Só atira se a vítima estiver viva, se for a vez do player, e o alvo não for ele mesmo
+                        // Valida se o tiro é elegível (alvo vivo, alvo inimigo, sua vez de atirar e espaço não atacado antes)
                         if (jog.vivo && jog.id !== meuId && sala.jogadores[sala.turnoAtual].id === meuId && val < 2) {
                             cel.style.cursor = 'crosshair';
                             cel.onclick = () => socket.emit('dar_tiro', { salaId: minhaSalaId, alvoIndex: idx, linha: r, coluna: c });
@@ -247,9 +284,10 @@
             });
         }
 
-        // Exibe tela final com o ranking detalhado
+        // Processa fim de jogo e exibe o painel de estatísticas completas
         socket.on('fim_de_jogo', ({ vencedor, ranking }) => {
             document.getElementById('tela-jogo').style.display = 'none';
+            document.getElementById('tela-posicionamento').style.display = 'none';
             document.getElementById('tela-final').style.display = 'block';
             document.getElementById('vencedor-destaque').innerText = `🏆 Campeão: ${vencedor}`;
 
@@ -258,11 +296,11 @@
             ranking.forEach(j => {
                 corpo.innerHTML += `
                     <tr class="${j.nome === vencedor ? 'rank-vencedor' : ''}">
-                        <td><strong>${j.nome}</strong></td>
-                        <td>${j.estatisticas.abates} Navios Afundados</td>
-                        <td>${j.estatisticas.tirosDados} disparos</td>
-                        <td>${j.estatisticas.tirosTomados} impactos</td>
-                        <td>${j.vivo ? 'Vivo' : 'Eliminado'}</td>
+                        <td><strong>${j.nome} ${j.isBot ? '[BOT]' : ''}</strong></td>
+                        <td>${j.estatisticas.abates} Afundados</td>
+                        <td>${j.estatisticas.tirosDados} tiros</td>
+                        <td>${j.estatisticas.tirosTomados} danos</td>
+                        <td>${j.vivo ? 'Sobrevivente' : 'Morto'}</td>
                     </tr>
                 `;
             });
