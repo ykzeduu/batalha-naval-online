@@ -1,5 +1,5 @@
 /* ==========================================================================
-   RESET E CENÁRIO DE ILHA (GRAMA E ÁRVORES)
+   RESET E CENÁRIO AMPLIADO DE FLORESTA (GRAMA E MAIS ÁRVORES)
    ========================================================================== */
 * {
     box-sizing: border-box;
@@ -9,7 +9,6 @@
 
 body {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    /* Textura de Grama Pixel/Retro com tons verdes */
     background-color: #1b4332;
     background-image: 
         radial-gradient(#2d6a4f 15%, transparent 16%),
@@ -24,17 +23,36 @@ body {
     overflow-x: hidden;
 }
 
-/* Árvores fixas decorativas no cenário (fora das áreas de jogo) */
-body::before, body::after {
-    content: '🌲 🌳 🌲';
+/* Adicionando muito mais densidade de árvores fixas nos cantos do cenário */
+body::before {
+    content: '🌲 🌳 🌲 🌳 🌲 🌳 🌲\A 🌳 🌲 🌳 🌲 🌳\A 🌲 🌳 🌲';
+    white-space: pre-wrap;
     position: fixed;
-    font-size: 28px;
-    letter-spacing: 12px;
-    opacity: 0.7;
+    top: 5%;
+    left: 2%;
+    font-size: 26px;
+    line-height: 40px;
+    letter-spacing: 8px;
+    opacity: 0.8;
     z-index: 0;
+    text-align: left;
+    pointer-events: none;
 }
-body::before { top: 10%; left: 3%; transform: rotate(-5deg); }
-body::after { bottom: 12%; right: 3%; transform: rotate(8deg); }
+
+body::after {
+    content: '🌲 🌳 🌲 🌳 🌲\A 🌳 🌲 🌳 🌲 🌳 🌲\A 🌳 🌲 🌳';
+    white-space: pre-wrap;
+    position: fixed;
+    bottom: 5%;
+    right: 2%;
+    font-size: 26px;
+    line-height: 40px;
+    letter-spacing: 8px;
+    opacity: 0.8;
+    z-index: 0;
+    text-align: right;
+    pointer-events: none;
+}
 
 h1 { 
     color: #f8fafc; 
@@ -49,10 +67,11 @@ h2, h3 {
     text-shadow: 1px 1px 2px #0f172a;
     position: relative;
     z-index: 10;
+    margin-bottom: 10px;
 }
 
 /* ==========================================================================
-   CORREÇÃO CRÍTICA: ALINHAMENTO CENTRALIZADO DOS CARDS E TELAS
+   ALINHAMENTO CENTRALIZADO SEGURO
    ========================================================================== */
 .container-tela { 
     max-width: 1200px; 
@@ -60,7 +79,7 @@ h2, h3 {
     padding: 10px;
     display: flex;
     flex-direction: column;
-    align-items: center; /* Garante centralização horizontal total */
+    align-items: center; 
     justify-content: center;
     min-height: 80vh;
 }
@@ -93,8 +112,6 @@ input {
     border: 2px solid #334155;
     background: #020617; 
     color: #fff; 
-    font-size: 15px; 
-    margin: 10px 0; 
     text-align: center;
 }
 
@@ -109,7 +126,6 @@ button {
     margin: 8px;
     font-size: 14px;
     transition: all 0.15s ease;
-    text-shadow: 1px 1px 0px rgba(0,0,0,0.4);
 }
 
 button:hover { 
@@ -126,7 +142,7 @@ button:disabled {
 }
 
 /* ==========================================================================
-   CONFIGURAÇÃO DOS GRIDS (ARENA DE BATALHA COSTA MARÍTIMA)
+   CORREÇÃO DO BUG: COMPORTAMENTO DO GRID 8x8 FORÇADO CONSTANTE
    ========================================================================== */
 .setup-container { 
     display: flex; 
@@ -138,157 +154,149 @@ button:disabled {
     width: 100%;
 }
 
+/* Forçado display grid nativo com prioridade máxima para não sumir no início */
 .grid-8x8, #meu-grid-setup {
     display: grid !important; 
     grid-template-columns: repeat(8, 44px) !important;
     grid-template-rows: repeat(8, 44px) !important; 
-    gap: 2px; 
-    background: #023e8a; /* Tom de mar profundo na borda */
+    gap: 0px !important; /* Removido o gap para os blocos colarem perfeitamente */
+    background: #023e8a; 
     padding: 14px; 
     border-radius: 14px;
-    border: 6px solid #b5838d; /* Simula uma mureta de cais de madeira ou areia */
+    border: 6px solid #b5838d; 
     box-shadow: 0 15px 35px rgba(0, 0, 0, 0.8);
-    width: fit-content;
-    margin: 0 auto;
+    width: fit-content !important;
+    margin: 0 auto !important;
 }
 
 /* ==========================================================================
-   TEXTURA DE ÁGUA ANIMADA (WAVE EFFECT)
+   TEXTURA DE ÁGUA NATURAL REFEITA (SEM ASPECTO BLOCADO)
    ========================================================================== */
 .celula { 
     background-color: #0077b6; 
-    /* Efeito de ondas concêntricas orgânicas */
     background-image: 
-        radial-gradient(circle at 20% 30%, #0096c7 8%, transparent 9%),
-        radial-gradient(circle at 75% 70%, #0096c7 12%, transparent 13%);
-    background-size: 22px 22px;
-    border: 1px solid rgba(255, 255, 255, 0.15);
-    border-radius: 4px; 
-    transition: background-color 0.2s, transform 0.1s;
+        radial-gradient(circle at 30% 30%, #0096c7 10%, transparent 11%),
+        radial-gradient(circle at 70% 70%, #0096c7 8%, transparent 9%);
+    background-size: 44px 44px; /* Casamento perfeito com o tamanho da célula */
+    border: 0.5px solid rgba(255, 255, 255, 0.08); /* Linha sutil de água */
+    transition: background-color 0.2s;
     width: 44px;
     height: 44px;
     position: relative;
-    overflow: hidden;
-    animation: moverOndas 4s infinite linear;
-}
-
-@keyframes moverOndas {
-    0% { background-position: 0px 0px, 0px 0px; }
-    50% { background-position: 3px 2px, -2px 3px; }
-    100% { background-position: 0px 0px, 0px 0px; }
+    box-sizing: border-box;
 }
 
 .celula:hover { 
     background-color: #0096c7;
-    box-shadow: inset 0 0 10px rgba(255, 255, 255, 0.4);
-    transform: scale(1.02);
+    box-shadow: inset 0 0 8px rgba(255, 255, 255, 0.3);
 }
 
-/* ÁGUA JÁ ATACADA (Cinza Opaco - Sem ondas, névoa pós-explosão) */
+/* ÁGUA JÁ ATACADA (Cinza Opaco Sólido) */
 .agua { 
     background-color: #475569 !important; 
-    background-image: radial-gradient(circle at 50% 50%, #64748b 15%, transparent 60%) !important;
-    background-size: 100% 100% !important;
+    background-image: radial-gradient(circle at 50% 50%, #64748b 10%, transparent 50%) !important;
     border-color: #334155 !important;
-    animation: none !important;
-    box-shadow: inset 0 0 12px rgba(0,0,0,0.7) !important;
+    box-shadow: inset 0 0 10px rgba(0,0,0,0.5) !important;
 }
 
 /* ==========================================================================
-   DESIGN COMPLETO DE UM MINI DESIGN DE BARCO REALISTA
+   VISUAL ÚNICO E CONTÍNUO DO BARCO (UNIFICAÇÃO DE TEXTURA + VERTICAL)
    ========================================================================== */
 .meu-navio { 
-    background: #3d3d3d !important;
-    border: 1px solid #1a1a1a !important;
-    box-shadow: inset 0 -4px 0px #262626, 0 2px 4px rgba(0,0,0,0.4) !important;
-    animation: none !important;
+    background: #2b2b2b !important;
+    border: none !important; /* Sem bordas individuais para não parecer partido */
+    box-shadow: inset 0 -3px 0px #1a1a1a !important;
+    z-index: 5;
 }
 
-/* Escotilha padrão em todas as partes */
+/* Elemento base para detalhes genéricos (janelinha redonda) */
 .meu-navio::after {
     content: '';
     position: absolute;
-    top: 40%; left: 40%; width: 22%; height: 22%;
+    top: 38%; left: 38%; width: 24%; height: 24%;
     background: #38bdf8;
-    border: 1px solid #1a1a1a;
+    border: 1px solid #111;
     border-radius: 50%;
+    z-index: 6;
 }
 
-/* --- PEÇAS HORIZONTAIS --- */
+/* --- FORMATANDO BARCOS NA HORIZONTAL --- */
 
-/* Proa (Ponta Esquerda - Bico do Barco) */
+/* Proa Horizontal (Ponta Esquerda) */
 .meu-navio:has(+ .meu-navio) {
-    border-top-left-radius: 25px 22px !important;
-    border-bottom-left-radius: 25px 22px !important;
-    background: linear-gradient(90deg, #242424, #4a4a4a) !important;
-}
-/* Detalhe do canhão na frente */
-.meu-navio:has(+ .meu-navio)::before {
-    content: ''; position: absolute;
-    left: -2px; top: 42%; width: 6px; height: 6px;
-    background: #000; border-radius: 2px;
+    border-top-left-radius: 22px 22px !important;
+    border-bottom-left-radius: 22px 22px !important;
+    background: linear-gradient(90deg, #1f1f1f, #2b2b2b) !important;
 }
 
-/* Popa (Ponta Direita - Traseira Reta com Leme) */
+/* Popa Horizontal (Ponta Direita) */
 .grid-8x8 .meu-navio + .meu-navio:not(:has(+ .meu-navio)) {
     border-top-right-radius: 8px !important;
     border-bottom-right-radius: 8px !important;
-    background: linear-gradient(270deg, #242424, #4a4a4a) !important;
+    background: linear-gradient(270deg, #1f1f1f, #2b2b2b) !important;
 }
 .grid-8x8 .meu-navio + .meu-navio:not(:has(+ .meu-navio))::after {
-    background: #ef4444; /* Luz traseira de navegação */
-    border-radius: 2px; width: 6px; height: 6px; left: 70%;
+    background: #ef4444; border-radius: 2px; width: 6px; height: 6px; left: 65%;
 }
 
-/* Meio do Barco (Cabine + Chaminé de Ferro) */
+/* Meio Horizontal (Unificado) */
 .grid-8x8 .meu-navio:has(+ .meu-navio) + .meu-navio:has(+ .meu-navio) {
-    border-radius: 0px !important;
-    background: #3a3a3a !important;
+    background: #2b2b2b !important;
 }
-.grid-8x8 .meu-navio:has(+ .meu-navio) + .meu-navio:has(+ .meu-navio)::before {
-    content: ''; position: absolute;
-    top: 15%; left: 30%; width: 40%; height: 35%;
-    background: #e2e8f0; border: 1px solid #1a1a1a; border-radius: 2px;
+.grid-8x8 .meu-navio:has(+ .meu-navio) + .meu-navio:has(+ .meu-navio)::after {
+    border-radius: 2px; width: 40%; height: 40%; left: 30%; top: 30%;
+    background: #f59e0b;
 }
 
-/* --- ACERTOS, ESTATÍSTICAS E FLUXO --- */
+/* --- FORMATANDO BARCOS NA VERTICAL --- */
+/* (Baseado nos atributos de linha/coluna injetados pelo JS) */
+
+.meu-navio[data-v-peca="proa"] {
+    border-top-left-radius: 22px 22px !important;
+    border-top-right-radius: 22px 22px !important;
+    background: linear-gradient(180deg, #1f1f1f, #2b2b2b) !important;
+}
+
+.meu-navio[data-v-peca="popa"] {
+    border-bottom-left-radius: 8px !important;
+    border-bottom-right-radius: 8px !important;
+    background: linear-gradient(0deg, #1f1f1f, #2b2b2b) !important;
+}
+.meu-navio[data-v-peca="popa"]::after {
+    background: #ef4444; border-radius: 2px; width: 6px; height: 6px; top: 65%; left: 45%;
+}
+
+.meu-navio[data-v-peca="meio"] {
+    background: #2b2b2b !important;
+}
+.meu-navio[data-v-peca="meio"]::after {
+    border-radius: 2px; width: 40%; height: 40%; left: 30%; top: 30%;
+    background: #f59e0b;
+}
+
+/* --- IMPACTOS E FLUXO --- */
 .fogo { 
     background: radial-gradient(circle, #ff0055 20%, #4a0010 90%) !important; 
-    border-color: #ff0055 !important; 
     box-shadow: 0 0 15px #ff5555 !important;
-    animation: none !important;
 }
 .fogo::after { display: none; }
 .fogo::before {
     content: '💥'; position: absolute; font-size: 20px;
-    top: 50%; left: 50%; transform: translate(-50%, -50%);
+    top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 10;
 }
 
 .revelado-fim {
     background: linear-gradient(135deg, #ff9f1c 0%, #ff4d6d 100%) !important;
     border: 2px solid #fff !important;
     box-shadow: 0 0 15px #ff9f1c !important;
-    animation: none !important;
 }
 
 #arena { 
-    display: flex; 
-    flex-wrap: wrap; 
-    justify-content: center; 
-    gap: 30px; 
-    margin-top: 20px; 
-    width: 100%;
+    display: flex; flex-wrap: wrap; justify-content: center; gap: 30px; margin-top: 20px; width: 100%;
 }
 
-.tabuleiro-container { 
-    background: #0f172a; 
-    padding: 16px; 
-    border-radius: 16px; 
-    border: 4px solid #1e293b; 
-}
-
+.tabuleiro-container { background: #0f172a; padding: 16px; border-radius: 16px; border: 4px solid #1e293b; }
 .player-morto { opacity: 0.3; border-color: #ef4444; }
-
 .alerta {
     position: fixed; top: 25px; left: 50%; transform: translateX(-50%);
     background: #dc2626; color: white; padding: 14px 40px; font-weight: bold;
