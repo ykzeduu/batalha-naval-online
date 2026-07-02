@@ -2,94 +2,235 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>Batalha Naval 4 Quadrantes</title>
+    <title>Batalha Naval Advanced 4P</title>
     <link rel="stylesheet" href="style.css">
     <script src="/socket.io/socket.io.js"></script>
 </head>
 <body>
-    <h1>Batalha Naval Online (Até 4p / Bots)</h1>
-    <div id="lobby">
-        <p id="status-lobby">Aguardando jogadores...</p>
-        <button id="btn-comecar" onclick="iniciarJogo()">Começar Jogo (Preencher com Bots)</button>
+
+    <div id="tela-inicial" class="container-tela">
+        <h1>Batalha Naval 4P</h1>
+        <div class="card">
+            <input type="text" id="input-nome" placeholder="Seu Nome/Nick" maxlength="12">
+            <hr>
+            <div class="opcoes-criacao">
+                <label><input type="checkbox" id="check-bots" checked> Preencher vagas vazias com Bots</label>
+                <button onclick="criarSala()">Criar Novo Lobby Público</button>
+            </div>
+        </div>
+
+        <h3>Lobbies Públicos Disponíveis:</h3>
+        <div id="lista-salas-container">
+            <p>Nenhuma sala aberta no momento...</p>
+        </div>
     </div>
 
-    <h2 id="turno-indicador"></h2>
-    <div id="arena"></div>
+    <div id="tela-lobby" class="container-tela" style="display:none;">
+        <h2 id="sala-titulo">Sala: -</h2>
+        <div class="card">
+            <h3>Jogadores na Sala:</h3>
+            <ul id="lista-jogadores-lobby"></ul>
+            <br>
+            <button id="btn-master-start" style="display:none;" onclick="iniciarPosicionamento()">Iniciar Fase de Preparação</button>
+        </div>
+    </div>
+
+    <div id="tela-posicionamento" class="container-tela" style="display:none;">
+        <h2>Posicione sua Frota (8x8)</h2>
+        <p>Clique nas células para posicionar seus barcos. <br> 
+           Frota: 1 barco de 3 blocos e 2 barcos de 2 blocos (Total: 7 blocos).</p>
+        
+        <div class="setup-container">
+            <div id="meu-grid-setup" class="grid-8x8"></div>
+            <div class="controles-setup">
+                <p>Blocos Marcados: <span id="contador-blocos">0</span> / 7</p>
+                <button onclick="limparSetup()">Limpar Tabuleiro</button>
+                <button id="btn-confirmar-frota" onclick="confirmarFrota()" disabled>Confirmar Prontidão</button>
+            </div>
+        </div>
+    </div>
+
+    <div id="tela-jogo" class="container-tela" style="display:none;">
+        <h2 id="turno-indicador">Vez de: -</h2>
+        <div id="arena"></div>
+    </div>
 
     <script>
         const socket = io();
         let meuId = null;
-        let estadoSala = null;
+        let minhaSalaId = null;
+        let meuTabuleiroSetup = Array(8).fill(0).map(() => Array(8).fill(0));
+        let blocosMarcados = 0;
 
         socket.on('connect', () => { meuId = socket.id; });
 
-        socket.on('atualizar_sala', (sala) => {
-            document.getElementById('status-lobby').innerText = `Jogadores conectados: ${sala.jogadores.length}/4`;
+        // Recebe atualizações das salas abertas
+        socket.on('lista_salas', (salas) => {
+            const container = document.getElementById('lista-salas-container');
+            container.innerHTML = '';
+            if (salas.length === 0) {
+                container.innerHTML = '<p>Nenhuma sala aberta no momento...</p>';
+                return;
+            }
+            salas.forEach(s => {
+                container.innerHTML += `
+                    <div class="item-sala">
+                        <span>Mesa: <strong>${s.id}</strong> (${s.qtd}/4 Jogadores) ${s.bots ? '[Com Bots]' : ''}</span>
+                        <button onclick="entrarSala('${s.id}')">Entrar</button>
+                    </div>
+                `;
+            });
         });
 
-        function iniciarJogo() {
-            socket.emit('iniciar_jogo');
+        function criarSala() {
+            const nome = document.getElementById('input-nome').value.trim();
+            if(!nome) return alert('Insira seu nome primeiro!');
+            const bots = document.getElementById('check-bots').checked;
+            socket.emit('criar_sala', { nomeDono: nome, usarBots: bots });
+        }
+
+        function entrarSala(id) {
+            const nome = document.getElementById('input-nome').value.trim();
+            if(!nome) return alert('Insira seu nome para poder entrar na sala!');
+            socket.emit('entrar_sala', { salaId: id, nomeJogador: nome });
+        }
+
+        socket.on('sala_criada', (id) => { minhaSalaId = id; });
+
+        socket.on('atualizar_sala', (sala) => {
+            minhaSalaId = sala.id;
+            document.getElementById('tela-inicial').style.display = 'none';
+            document.getElementById('tela-lobby').style.display = 'block';
+            document.getElementById('sala-titulo').innerText = `Lobby: ${sala.id}`;
+
+            const lista = document.getElementById('lista-jogadores-lobby');
+            lista.innerHTML = '';
+
+            sala.jogadores.forEach(j => {
+                let li = document.createElement('li');
+                li.innerText = j.nome + (j.id === sala.donoId ? ' 👑 (Dono)' : '') + (j.pronto ? ' ✓ Pronto' : '');
+                
+                // Opção de kick para o Dono da sala
+                if (sala.donoId === meuId && j.id !== meuId && !j.isBot) {
+                    let btnKick = document.createElement('button');
+                    btnKick.innerText = 'Kick';
+                    btnKick.className = 'btn-kick';
+                    btnKick.onclick = () => socket.emit('kick_jogador', { salaId: sala.id, jogadorId: j.id });
+                    li.appendChild(btnKick);
+                }
+                lista.appendChild(li);
+            });
+
+            if (sala.donoId === meuId) {
+                document.getElementById('btn-master-start').style.display = 'inline-block';
+            }
+        });
+
+        socket.on('kickado', () => {
+            alert('Você foi removido da sala pelo administrador.');
+            location.reload();
+        });
+
+        socket.on('erro', (msg) => alert(msg));
+
+        // Transição para tela de arrumar os barcos
+        function iniciarPosicionamento() {
+            socket.emit('iniciar_posicionamento', { salaId: minhaSalaId });
+        }
+
+        socket.on('fase_posicionamento', (sala) => {
+            document.getElementById('tela-lobby').style.display = 'none';
+            document.getElementById('tela-posicionamento').style.display = 'block';
+            gerarGridSetup();
+        });
+
+        function gerarGridSetup() {
+            const container = document.getElementById('meu-grid-setup');
+            container.innerHTML = '';
+            for(let r=0; r<8; r++) {
+                for(let c=0; c<8; c++) {
+                    let cel = document.createElement('div');
+                    cel.className = 'celula';
+                    cel.onclick = () => alternarBloco(r, c, cel);
+                    container.appendChild(cel);
+                }
+            }
+        }
+
+        function alternarBloco(r, c, elemento) {
+            if (meuTabuleiroSetup[r][c] === 0) {
+                if (blocosMarcados >= 7) return alert('Você já atingiu o limite de 7 blocos de frota (1x3 e 2x2)!');
+                meuTabuleiroSetup[r][c] = 1;
+                elemento.classList.add('meu-navio');
+                blocosMarcados++;
+            } else {
+                meuTabuleiroSetup[r][c] = 0;
+                elemento.classList.remove('meu-navio');
+                blocosMarcados--;
+            }
+            document.getElementById('contador-blocos').innerText = blocosMarcados;
+            document.getElementById('btn-confirmar-frota').disabled = (blocosMarcados !== 7);
+        }
+
+        function limparSetup() {
+            meuTabuleiroSetup = Array(8).fill(0).map(() => Array(8).fill(0));
+            blocosMarcados = 0;
+            document.getElementById('contador-blocos').innerText = 0;
+            document.getElementById('btn-confirmar-frota').disabled = true;
+            gerarGridSetup();
+        }
+
+        function confirmarFrota() {
+            socket.emit('tabuleiro_pronto', { salaId: minhaSalaId, tabuleiro: meuTabuleiroSetup });
+            document.getElementById('tela-posicionamento').innerHTML = '<h2>Aguardando os outros capitães terminarem...</h2>';
         }
 
         socket.on('jogo_iniciado', (sala) => {
-            document.getElementById('lobby').style.display = 'none';
-            renderizarArena(sala);
+            document.getElementById('tela-posicionamento').style.display = 'none';
+            document.getElementById('tela-jogo').style.display = 'block';
+            renderizarPartida(sala);
         });
 
         socket.on('atualizar_jogo', (sala) => {
-            renderizarArena(sala);
+            renderizarPartida(sala);
         });
 
-        function renderizarArena(sala) {
-            estadoSala = sala;
+        function renderizarPartida(sala) {
             const arena = document.getElementById('arena');
             arena.innerHTML = '';
-
-            const jogadorDaVez = sala.jogadores[sala.turnoAtual];
-            document.getElementById('turno-indicador').innerText = `Vez de: ${jogadorDaVez.nome}`;
+            
+            const jVez = sala.jogadores[sala.turnoAtual];
+            document.getElementById('turno-indicador').innerText = `Vez de atirar: ${jVez.nome}`;
 
             sala.jogadores.forEach((jog, idx) => {
-                const divTabuleiro = document.createElement('div');
-                divTabuleiro.className = 'tabuleiro-container';
-                
-                const titulo = document.createElement('h3');
-                titulo.innerText = jog.id === meuId ? `${jog.nome} (Você)` : jog.nome;
-                divTabuleiro.appendChild(titulo);
+                const box = document.createElement('div');
+                box.className = 'tabuleiro-container';
+                box.innerHTML = `<h3>${jog.id === meuId ? 'Seu Mar' : jog.nome}</h3>`;
 
                 const grid = document.createElement('div');
-                grid.className = 'grid';
+                grid.className = 'grid-8x8';
 
-                for (let r = 0; r < 5; r++) {
-                    for (let c = 0; c < 5; c++) {
-                        const celula = document.createElement('div');
-                        celula.className = 'celula';
-                        
-                        let valor = jog.tabuleiro[r][c];
-                        // Cores baseadas no estado
-                        if (valor === 2) celula.classList.add('agua');
-                        if (valor === 3) celula.classList.add('fogo');
-                        
-                        // Só mostra os próprios navios vivos
-                        if (valor === 1 && jog.id === meuId) {
-                            celula.classList.add('meu-navio');
+                for (let r = 0; r < 8; r++) {
+                    for (let c = 0; c < 8; c++) {
+                        const cel = document.createElement('div');
+                        cel.className = 'celula';
+                        let val = jog.tabuleiro[r][c];
+
+                        if (val === 2) cel.classList.add('agua');
+                        if (val === 3) cel.classList.add('fogo');
+                        if (val === 1 && jog.id === meuId) cel.classList.add('meu-navio');
+
+                        // Lógica de ataque
+                        if (jog.id !== meuId && sala.jogadores[sala.turnoAtual].id === meuId && val < 2) {
+                            cel.style.cursor = 'crosshair';
+                            cel.onclick = () => socket.emit('dar_tiro', { salaId: minhaSalaId, alvoIndex: idx, linha: r, coluna: c });
                         }
-
-                        // Evento de clique para atirar no inimigo
-                        if (jog.id !== meuId && sala.jogadores[sala.turnoAtual].id === meuId && valor < 2) {
-                            celula.style.cursor = 'pointer';
-                            celula.onclick = () => atirar(idx, r, c);
-                        }
-
-                        grid.appendChild(celula);
+                        grid.appendChild(cel);
                     }
                 }
-                divTabuleiro.appendChild(grid);
-                arena.appendChild(divTabuleiro);
+                box.appendChild(grid);
+                arena.appendChild(box);
             });
-        }
-
-        function atirar(alvoIndex, linha, coluna) {
-            socket.emit('dar_tiro', { alvoIndex, linha, coluna });
         }
     </script>
 </body>

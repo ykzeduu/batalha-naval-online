@@ -1,41 +1,120 @@
 body {
-    font-family: sans-serif;
-    background-color: #1e1e24;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #0b0e14;
+    color: #e2e8f0;
+    text-align: center;
+    margin: 0;
+    padding: 20px;
+}
+
+h1 { color: #00f2fe; text-shadow: 0 0 10px rgba(0, 242, 254, 0.5); }
+
+.container-tela {
+    max-width: 1000px;
+    margin: 0 auto;
+    animation: fadeIn 0.4s ease-in-out;
+}
+
+.card {
+    background: #141923;
+    border: 1px solid #1e293b;
+    padding: 25px;
+    border-radius: 12px;
+    display: inline-block;
+    min-width: 320px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+}
+
+input[type="text"] {
+    padding: 10px;
+    width: 80%;
+    border-radius: 6px;
+    border: 1px solid #334155;
+    background: #1e293b;
     color: #fff;
+    font-size: 16px;
     text-align: center;
 }
-#arena {
-    display: flex;
-    flex-wrap: wrap;
-    justify-content: center;
-    gap: 30px;
-    margin-top: 20px;
-}
-.tabuleiro-container {
-    background: #2a2a35;
-    padding: 15px;
-    border-radius: 8px;
-}
-.grid {
-    display: grid;
-    grid-template-columns: repeat(5, 40px);
-    grid-template-rows: repeat(5, 40px);
-    gap: 4px;
-}
-.celula {
-    background-color: #44475a;
-    border-radius: 4px;
-    transition: background 0.2s;
-}
-.meu-navio { background-color: #50fa7b; } /* Verde */
-.agua { background-color: #8be9fd; }      /* Azul */
-.fogo { background-color: #ff5555; }      /* Vermelho */
+
 button {
-    padding: 10px 20px;
-    font-size: 16px;
-    background-color: #bd93f9;
+    background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%);
+    color: #000;
+    font-weight: bold;
     border: none;
-    border-radius: 4px;
+    padding: 12px 24px;
+    border-radius: 6px;
     cursor: pointer;
+    margin-top: 10px;
+    transition: transform 0.1s, opacity 0.2s;
 }
-button:hover { background-color: #ff79c6; }
+button:hover:not(:disabled) { transform: scale(1.03); opacity: 0.9; }
+button:disabled { background: #334155; color: #64748b; cursor: not-allowed; }
+
+.opcoes-criacao { margin-top: 15px; font-size: 14px; }
+
+/* Lista de Lobbies */
+#lista-salas-container { margin: 20px auto; max-width: 500px; }
+.item-sala {
+    background: #1e293b;
+    padding: 12px;
+    margin: 8px 0;
+    border-radius: 6px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-left: 4px solid #00f2fe;
+}
+
+/* Moderação (Kick) */
+.btn-kick {
+    background: #ef4444; color: white; padding: 3px 8px; font-size: 12px; margin-left: 15px;
+}
+
+/* Os Tabuleiros 8x8 */
+.grid-8x8 {
+    display: grid;
+    grid-template-columns: repeat(8, 35px);
+    grid-template-rows: repeat(8, 35px);
+    gap: 3px;
+    background: #1e293b;
+    padding: 5px;
+    border-radius: 6px;
+}
+
+.celula {
+    background-color: #0f172a;
+    border: 1px solid #1e293b;
+    border-radius: 3px;
+    transition: all 0.15s ease;
+}
+.celula:hover { background-color: #334155; }
+
+/* SKIN DOS BARCOS (Estilo Blindagem Militar Tecnológica) */
+.meu-navio { 
+    background: linear-gradient(45deg, #34d399, #059669); 
+    box-shadow: inset 0 0 8px rgba(0,0,0,0.6);
+    border: 1px solid #6ee7b7;
+    position: relative;
+}
+.meu-navio::after {
+    content: '';
+    position: absolute;
+    top: 25%; left: 25%; width: 50%; height: 50%;
+    background: rgba(255,255,255,0.2);
+    border-radius: 50%;
+}
+
+/* Efeitos de Disparos */
+.agua { background-color: #38bdf8 !important; box-shadow: inset 0 0 8px rgba(0,0,0,0.5); }
+.fogo { 
+    background: radial-gradient(circle, #ef4444 30%, #7f1d1d 90%) !important; 
+    border-color: #f87171 !important;
+    animation: pulse 1s infinite alternate;
+}
+
+#arena { display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; }
+.tabuleiro-container { background: #141923; padding: 15px; border-radius: 10px; }
+.setup-container { display: flex; justify-content: center; gap: 40px; margin-top: 25px; align-items: center; }
+
+@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
+@keyframes pulse { from { transform: scale(1); } to { transform: scale(0.97); } }
