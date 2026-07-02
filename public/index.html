@@ -1,133 +1,375 @@
 <!DOCTYPE html>
-<html lang="pt-br">
+<html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Batalha Naval - Arena Ilha</title>
+    <title>Batalha Naval Pro 4P</title>
     <link rel="stylesheet" href="style.css">
+    <script src="/socket.io/socket.io.js"></script>
 </head>
 <body>
 
+    <!-- Elementos decorativos de ambiente espalhados de forma natural (fora do fluxo do layout) -->
     <div class="floresta canto-superior-esquerdo">🌲 🌳 🌲<br>🌳 &nbsp; 🌲<br>🌲 🌳</div>
     <div class="floresta canto-superior-direito">🌳 🌲 🌳<br>🌲 &nbsp; 🌳<br>🌳 🌲</div>
     <div class="floresta canto-inferior-esquerdo">🌲 &nbsp; 🌳<br>🌳 🌲 🌲<br>🌲 &nbsp; 🌳</div>
     <div class="floresta canto-inferior-direito">🌳 🌲 &nbsp;<br>🌲 🌳 🌳<br>&nbsp; 🌲 🌳</div>
 
-    <div class="container-tela">
+    <div id="logs-feed"></div>
+
+    <div id="tela-inicial" class="container-tela">
+        <h1>Batalha Naval 4P</h1>
         <div class="card">
-            <h1>Monte sua Frota (8x8)</h1>
-            <p style="margin-bottom: 15px; font-size: 14px; color: #94a3b8;">
-                Obrigatório: Monte 1 navio de 3 blocos juntos e 2 navios de 2 blocos juntos.
-            </p>
-            
-            <div class="setup-container">
-                <div id="meu-grid-setup" class="grid-8x8"></div>
-                
-                <div class="controles-setup">
-                    <div style="font-weight: bold; margin-bottom: 5px;">
-                        Marcados: <span id="contador-blocos">0</span> / 7
-                    </div>
-                    <button onclick="limparSetup()" style="background: #10b981; border-color: #059669;">Limpar</button>
-                    <button id="btn-confirmar-frota" onclick="confirmarFrota()" disabled style="background: #3b82f6; border-color: #2563eb;">Pronto</button>
-                </div>
+            <input type="text" id="input-nome" placeholder="Seu Nome/Nick" maxlength="12">
+            <input type="password" id="input-senha-criar" placeholder="Senha da Sala (Opcional)">
+            <hr>
+            <button onclick="criarSala()">Criar Novo Lobby</button>
+        </div>
+        <h3>Lobbies Ativos:</h3>
+        <div id="lista-salas-container"><p>Nenhum lobby ativo no momento...</p></div>
+    </div>
+
+    <div id="tela-lobby" class="container-tela" style="display:none;">
+        <h2 id="sala-titulo">Sala: -</h2>
+        <div class="card">
+            <h3>Gerenciar Bots:</h3>
+            <div id="controles-bot-dono" style="display:none;">
+                <button onclick="configBot('adicionar')">+ Adicionar Bot</button>
+                <button onclick="configBot('remover')">- Remover Bot</button>
+            </div>
+            <h3>Jogadores conectados:</h3>
+            <ul id="lista-jogadores-lobby"></ul>
+            <br>
+            <button id="btn-master-start" style="display:none;" onclick="iniciarPosicionamento()">Mudar para Preparação</button>
+        </div>
+    </div>
+
+    <div id="tela-posicionamento" class="container-tela" style="display:none;">
+        <h2>Monte sua Frota (8x8)</h2>
+        <p style="color: #58a6ff;">Obrigatório: Monte 1 navio de 3 blocos juntos e 2 navios de 2 blocks juntos.</p>
+        <div class="setup-container">
+            <div id="meu-grid-setup" class="grid-8x8"></div>
+            <div class="controles-setup">
+                <p>Marcados: <span id="contador-blocos">0</span> / 7</p>
+                <button onclick="limparSetup()">Limpar</button>
+                <button id="btn-confirmar-frota" onclick="validarEConfirmarFrota()" disabled>Pronto</button>
             </div>
         </div>
     </div>
 
+    <div id="tela-jogo" class="container-tela" style="display:none;">
+        <h2 id="turno-indicador">Vez de: -</h2>
+        <div style="margin: 10px;">
+            <span id="tiros-indicador" style="color: #ffb86c; font-weight: bold; margin-right: 15px;">Tiros restantes: 2</span>
+            <button id="btn-usar-bomba" onclick="alternarModoBomba()" style="background: #ff5555;">Usar Super Bomba X (Cargas: <span id="qtd-bombas">0</span>)</button>
+        </div>
+        <div id="arena"></div>
+    </div>
+
+    <div id="tela-final" class="container-tela" style="display:none;">
+        <h1>Fim de Jogo!</h1>
+        <h2 id="vencedor-destaque" style="color: #56d364;">Vencedor: -</h2>
+        <div class="card" style="width: 85%;">
+            <h3>Classificação Geral & Estatísticas:</h3>
+            <table id="tabela-ranking">
+                <thead>
+                    <tr>
+                        <th>Jogador</th>
+                        <th>Acertos / Abates</th>
+                        <th>Tiros Disparados</th>
+                        <th>Tiros Recebidos</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="corpo-ranking"></tbody>
+            </table>
+            <br>
+            <button onclick="location.reload()">Voltar ao Menu Principal</button>
+        </div>
+    </div>
+
     <script>
-        // Matriz de controle do tabuleiro (8x8)
+        const socket = io();
+        let meuId = null;
+        let minhaSalaId = null;
         let meuTabuleiroSetup = Array(8).fill(0).map(() => Array(8).fill(0));
         let blocosMarcados = 0;
+        let modoBombaAtivo = false;
+        let minhasBombasAtuais = 0;
+
+        socket.on('connect', () => { meuId = socket.id; });
+
+        socket.on('lista_salas', (salas) => {
+            const container = document.getElementById('lista-salas-container');
+            container.innerHTML = salas.length === 0 ? '<p>Nenhum lobby ativo no momento...</p>' : '';
+            salas.forEach(s => {
+                container.innerHTML += `
+                    <div class="item-sala">
+                        <span>Mesa: <strong>${s.id}</strong> (${s.qtd}/4p) ${s.privado ? '🔒 Privada' : '🔓 Pública'}</span>
+                        <button onclick="solicitarEntrada('${s.id}', ${s.privado})">Entrar</button>
+                    </div>
+                `;
+            });
+        });
+
+        function criarSala() {
+            const nome = document.getElementById('input-nome').value.trim();
+            const senha = document.getElementById('input-senha-criar').value;
+            if(!nome) return alert('Insira seu nome primeiro!');
+            socket.emit('criar_sala', { nomeDono: nome, senha: senha });
+        }
+
+        function solicitarEntrada(id, ePrivado) {
+            const nome = document.getElementById('input-nome').value.trim();
+            if(!nome) return alert('Insira seu nome primeiro!');
+            let senha = "";
+            if (ePrivado) {
+                senha = prompt("Este lobby é privado. Digite a senha para entrar:");
+                if (senha === null) return;
+            }
+            socket.emit('entrar_sala', { salaId: id, nomeJogador: nome, senhaInserida: senha });
+        }
+
+        function configBot(acao) {
+            socket.emit('alternar_bot', { salaId: minhaSalaId, acao: acao });
+        }
+
+        socket.on('sala_criada', (id) => { minhaSalaId = id; });
+
+        socket.on('atualizar_sala', (sala) => {
+            minhaSalaId = sala.id;
+            document.getElementById('tela-inicial').style.display = 'none';
+            document.getElementById('tela-lobby').style.display = 'block';
+            document.getElementById('sala-titulo').innerText = `Lobby: ${sala.id}`;
+
+            if(sala.donoId === meuId) {
+                document.getElementById('controles-bot-dono').style.display = 'block';
+                document.getElementById('btn-master-start').style.display = 'inline-block';
+            }
+
+            const lista = document.getElementById('lista-jogadores-lobby');
+            lista.innerHTML = '';
+            sala.jogadores.forEach(j => {
+                let li = document.createElement('li');
+                li.innerText = `${j.nome} ${j.isBot ? '[BOT]' : ''} ${j.id === sala.donoId ? '👑' : ''} ${j.pronto ? '✓ Pronto' : ''}`;
+                if(sala.donoId === meuId && j.id !== meuId && !j.isBot) {
+                    let b = document.createElement('button'); b.innerText = 'Kick'; b.className = 'btn-kick';
+                    b.onclick = () => socket.emit('kick_jogador', { salaId: sala.id, decoratorId: j.id });
+                    li.appendChild(b);
+                }
+                lista.appendChild(li);
+            });
+        });
+
+        socket.on('kickado', () => { alert('Você foi expulso.'); location.reload(); });
+        socket.on('erro', (msg) => alert(msg));
+
+        function iniciarPosicionamento() { socket.emit('iniciar_posicionamento', { salaId: minhaSalaId }); }
+
+        socket.on('fase_posicionamento', () => {
+            document.getElementById('tela-lobby').style.display = 'none';
+            document.getElementById('tela-posicionamento').style.display = 'block';
+            meuTabuleiroSetup = Array(8).fill(0).map(() => Array(8).fill(0));
+            blocosMarcados = 0;
+            gerarGridSetup();
+        });
 
         function gerarGridSetup() {
             const container = document.getElementById('meu-grid-setup');
             if (!container) return;
             
             container.innerHTML = '';
-            // Força o comportamento de Grid nativo antes de injetar os filhos
-            container.style.display = 'grid'; 
+            // Força a existência visível do Grid
+            container.style.display = 'grid';
 
             for(let r=0; r<8; r++) {
                 for(let c=0; c<8; c++) {
                     let cel = document.createElement('div'); 
                     cel.className = 'celula';
                     cel.id = `setup-${r}-${c}`;
-                    
-                    // Guardamos os atributos para o CSS usar caso seja necessário
-                    cel.setAttribute('data-row', r);
-                    cel.setAttribute('data-col', c);
-
-                    cel.onclick = () => {
-                        alternarBloco(r, c, cel);
-                        atualizarPecasVerticais();
-                    };
+                    cel.onclick = () => alternarBloco(r, c, cel);
                     container.appendChild(cel);
                 }
             }
         }
 
-        function alternarBloco(r, c, cel) {
+        function alternarBloco(r, c, elemento) {
             if (meuTabuleiroSetup[r][c] === 0) {
-                if (blocosMarcados < 7) {
-                    meuTabuleiroSetup[r][c] = 1;
-                    cel.classList.add('meu-navio');
-                    blocosMarcados++;
-                }
+                if (blocosMarcados >= 7) return;
+                meuTabuleiroSetup[r][c] = 1; elemento.classList.add('meu-navio'); blocosMarcados++;
             } else {
-                meuTabuleiroSetup[r][c] = 0;
-                cel.classList.remove('meu-navio');
-                cel.removeAttribute('data-v-peca');
-                blocosMarcados--;
+                meuTabuleiroSetup[r][c] = 0; elemento.classList.remove('meu-navio'); blocosMarcados--;
             }
-
             document.getElementById('contador-blocos').innerText = blocosMarcados;
             document.getElementById('btn-confirmar-frota').disabled = (blocosMarcados !== 7);
         }
 
-        // Lógica inteligente que varre o tabuleiro mapeando quem é proa, meio e popa vertical
-        function atualizarPecasVerticais() {
-            for(let r=0; r<8; r++) {
-                for(let c=0; c<8; c++) {
-                    let cel = document.getElementById(`setup-${r}-${c}`);
-                    if(cel) cel.removeAttribute('data-v-peca');
-                }
-            }
-
-            for(let c=0; c<8; c++) {
-                for(let r=0; r<8; r++) {
-                    if (meuTabuleiroSetup[r][c] === 1) {
-                        let temCima = (r > 0 && meuTabuleiroSetup[r-1][c] === 1);
-                        let temBaixo = (r < 7 && meuTabuleiroSetup[r+1][c] === 1);
-                        let temEsq = (c > 0 && meuTabuleiroSetup[r][c-1] === 1);
-                        let temDir = (c < 7 && meuTabuleiroSetup[r][c+1] === 1);
-
-                        // Se tem vizinho vertical e nenhum horizontal, trata como barco vertical
-                        if ((temCima || temBaixo) && !temEsq && !temDir) {
-                            let cel = document.getElementById(`setup-${r}-${c}`);
-                            if (cel) {
-                                if (!temCima && temBaixo) cel.setAttribute('data-v-peca', 'proa');
-                                else if (temCima && temBaixo) cel.setAttribute('data-v-peca', 'meio');
-                                else if (temCima && !temBaixo) cel.setAttribute('data-v-peca', 'popa');
-                            }
-                        }
-                    }
-                }
-            }
-        }
-
         function limparSetup() {
             meuTabuleiroSetup = Array(8).fill(0).map(() => Array(8).fill(0));
-            blocosMarcados = 0; 
-            document.getElementById('contador-blocos').innerText = 0;
+            blocosMarcados = 0; document.getElementById('contador-blocos').innerText = 0;
             document.getElementById('btn-confirmar-frota').disabled = true; 
             gerarGridSetup();
         }
 
-        function confirmarFrota() {
-            alert("Frota pronta! Enviando dados de posicionamento...");
+        function validarEConfirmarFrota() {
+            let visitados = Array(8).fill(0).map(() => Array(8).fill(false));
+            let tamanhosEncontrados = [];
+
+            for (let r = 0; r < 8; r++) {
+                for (let c = 0; c < 8; c++) {
+                    if (meuTabuleiroSetup[r][c] === 1 && !visitados[r][c]) {
+                        let tamanho = 0;
+                        let fila = [{r, c}];
+                        visitados[r][c] = true;
+
+                        while (fila.length > 0) {
+                            let atual = fila.shift();
+                            tamanho++;
+                            const vizinhos = [
+                                {r: atual.r-1, c: atual.c}, {r: atual.r+1, c: atual.c},
+                                {r: atual.r, c: atual.c-1}, {r: atual.r, c: atual.c+1}
+                            ];
+                            vizinhos.forEach(v => {
+                                if (v.r >= 0 && v.r < 8 && v.c >= 0 && v.c < 8) {
+                                    if (meuTabuleiroSetup[v.r][v.c] === 1 && !visitados[v.r][v.c]) {
+                                        visitados[v.r][v.c] = true;
+                                        fila.push(v);
+                                    }
+                                }
+                            });
+                        }
+                        tamanhosEncontrados.push(tamanho);
+                    }
+                }
+            }
+
+            tamanhosEncontrados.sort((a,b) => b - a);
+            const valido = tamanhosEncontrados.length === 3 && tamanhosEncontrados[0] === 3 && tamanhosEncontrados[1] === 2 && tamanhosEncontrados[2] === 2;
+
+            if (!valido) {
+                alert("Frota inválida! Você precisa agrupar as células em: exatamente 1 barco contínuo de 3 blocos e 2 barcos contínuos de 2 blocos.");
+                return;
+            }
+
+            socket.emit('tabuleiro_pronto', { salaId: minhaSalaId, tabuleiro: meuTabuleiroSetup });
+            document.getElementById('tela-posicionamento').innerHTML = '<div class="card"><h2>Frota Confirmada! Aguardando oponentes...</h2></div>';
         }
 
-        // Evento nativo do navegador para construir o Grid no exato momento do carregamento
+        function alternarModoBomba() {
+            if (minhasBombasAtuais <= 0) return alert("Você não possui cargas de Bomba! Dê mais tiros normais para carregar.");
+            modoBombaAtivo = !modoBombaAtivo;
+            const btn = document.getElementById('btn-usar-bomba');
+            if (modoBombaAtivo) {
+                btn.style.background = "#50fa7b"; btn.style.color = "#000"; btn.innerText = "💥 MODO BOMBA ATIVO (Clique no Alvo)";
+            } else {
+                btn.style.background = "#ff5555"; btn.style.color = "#fff"; btn.innerText = `Usar Super Bomba X (Cargas: ${minhasBombasAtuais})`;
+            }
+        }
+
+        socket.on('jogo_iniciado', (sala) => {
+            document.getElementById('tela-posicionamento').style.display = 'none';
+            document.getElementById('tela-jogo').style.display = 'block';
+            renderizarPartida(sala);
+        });
+
+        socket.on('atualizar_jogo', (sala) => { renderizarPartida(sala); });
+
+        socket.on('notificacao', (msg) => {
+            const feed = document.getElementById('logs-feed');
+            feed.innerHTML = `<div class="alerta">${msg}</div>`;
+            setTimeout(() => feed.innerHTML = '', 4500);
+        });
+
+        socket.on('revelar_posiciones_finais', (sala) => {
+            const arena = document.getElementById('arena'); arena.innerHTML = '';
+            document.getElementById('turno-indicador').innerText = "⌛ PARTIDA ENCERRADA! Revelando posições das frotas...";
+            document.getElementById('btn-usar-bomba').style.display = 'none';
+
+            sala.jogadores.forEach((jog) => {
+                const box = document.createElement('div');
+                box.className = 'tabuleiro-container';
+                box.innerHTML = `<h3>${jog.nome}</h3>`;
+                const grid = document.createElement('div'); grid.className = 'grid-8x8';
+
+                for (let r = 0; r < 8; r++) {
+                    for (let c = 0; c < 8; c++) {
+                        const cel = document.createElement('div'); cel.className = 'celula';
+                        let val = jog.tabuleiro[r][c];
+                        if (val === 1) cel.classList.add('revelado-fim');
+                        if (val === 2) cel.classList.add('agua');
+                        if (val === 3) cel.classList.add('fogo');
+                        grid.appendChild(cel);
+                    }
+                }
+                box.appendChild(grid); arena.appendChild(box);
+            });
+        });
+
+        function renderizarPartida(sala) {
+            const arena = document.getElementById('arena'); arena.innerHTML = '';
+            const jVez = sala.jogadores[sala.turnoAtual];
+            const eu = sala.jogadores.find(j => j.id === meuId);
+
+            if (eu) {
+                minhasBombasAtuais = eu.bombas;
+                if (!modoBombaAtivo) {
+                    document.getElementById('btn-usar-bomba').innerText = `Usar Super Bomba X (Cargas: ${minhasBombasAtuais})`;
+                }
+            }
+            
+            document.getElementById('turno-indicador').innerText = `Vez de: ${jVez.nome}`;
+            document.getElementById('tiros-indicador').innerText = `Tiros restantes na rodada: ${sala.tirosRestantesNoTurno}`;
+
+            sala.jogadores.forEach((jog, idx) => {
+                const box = document.createElement('div');
+                box.className = `tabuleiro-container ${!jog.vivo ? 'player-morto' : ''}`;
+                box.innerHTML = `<h3>${jog.id === meuId ? 'Seu Mar' : jog.nome} ${!jog.vivo ? '(ELIMINADO)' : ''}</h3>`;
+
+                const grid = document.createElement('div'); grid.className = 'grid-8x8';
+
+                for (let r = 0; r < 8; r++) {
+                    for (let c = 0; c < 8; c++) {
+                        const cel = document.createElement('div'); cel.className = 'celula';
+                        let val = jog.tabuleiro[r][c];
+
+                        if (val === 2) cel.classList.add('agua');
+                        if (val === 3) cel.classList.add('fogo');
+                        if (val === 1 && jog.id === meuId) cel.classList.add('meu-navio');
+
+                        if (jog.vivo && jog.id !== meuId && sala.jogadores[sala.turnoAtual].id === meuId && (val < 2 || modoBombaAtivo)) {
+                            cel.style.cursor = 'crosshair';
+                            cel.onclick = () => {
+                                socket.emit('dar_tiro', { salaId: minhaSalaId, alvoIndex: idx, linha: r, coluna: c, usarBomba: modoBombaAtivo });
+                                if (modoBombaAtivo) alternarModoBomba();
+                            };
+                        }
+                        grid.appendChild(cel);
+                    }
+                }
+                box.appendChild(grid); arena.appendChild(box);
+            });
+        }
+
+        socket.on('fim_de_jogo', ({ vencedor, ranking }) => {
+            document.getElementById('tela-jogo').style.display = 'none';
+            document.getElementById('tela-final').style.display = 'block';
+            document.getElementById('vencedor-destaque').innerText = `🏆 Campeão: ${vencedor}`;
+
+            const corpo = document.getElementById('corpo-ranking');
+            corpo.innerHTML = '';
+            ranking.forEach(j => {
+                corpo.innerHTML += `
+                    <tr class="${j.nome === vencedor ? 'rank-vencedor' : ''}">
+                        <td><strong>${j.nome} ${j.isBot ? '[BOT]' : ''}</strong></td>
+                        <td><span style="color:#58a6ff;">${j.estatisticas.blocosAcertados} blocos</span> / <span style="color:#ff5555;">${j.estatisticas.abates} afundados</span></td>
+                        <td>${j.estatisticas.tirosDados} disparos</td>
+                        <td>${j.estatisticas.tirosTomados} impactos</td>
+                        <td>${j.vivo ? 'Sobrevivente' : 'Morto'}</td>
+                    </tr>
+                `;
+            });
+        });
+
+        // Força a renderização inicial do grid assim que a página é carregada por completo
         window.addEventListener('DOMContentLoaded', () => {
             gerarGridSetup();
         });

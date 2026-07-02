@@ -1,5 +1,5 @@
 /* ==========================================================================
-   RESET E ESTILIZAÇÃO DO CHÃO DE GRAMA RETRÔ
+   RESET E CENÁRIO DE FLORESTA COM TEXTURA RETRÔ
    ========================================================================== */
 * {
     box-sizing: border-box;
@@ -19,6 +19,7 @@ body {
     text-align: center;
     padding: 20px;
     min-height: 100vh;
+    position: relative;
     overflow-x: hidden;
     display: flex;
     flex-direction: column;
@@ -27,12 +28,12 @@ body {
 }
 
 /* ==========================================================================
-   ARBUSTOS E ÁRVORES FLUTUANTES (ISOLADOS PARA NÃO QUEBRAR O ALINHAMENTO)
+   DECORAÇÃO DE ÁRVORES ESPALHADAS (NÃO DESALINHAM O CONTEÚDO)
    ========================================================================== */
 .floresta {
     position: absolute;
     font-size: 24px;
-    line-height: 36px;
+    line-height: 38px;
     letter-spacing: 6px;
     opacity: 0.75;
     pointer-events: none;
@@ -40,26 +41,35 @@ body {
     z-index: 1;
 }
 
-.canto-superior-esquerdo { top: 40px; left: 40px; text-align: left; }
-.canto-superior-right  { top: 40px; right: 40px; text-align: right; }
-.canto-inferior-esquerdo { bottom: 40px; left: 40px; text-align: left; }
-.canto-inferior-direito  { bottom: 40px; right: 40px; text-align: right; }
+.canto-superior-esquerdo { top: 30px; left: 40px; text-align: left; }
+.canto-superior-direito  { top: 30px; right: 40px; text-align: right; }
+.canto-inferior-esquerdo { bottom: 30px; left: 40px; text-align: left; }
+.canto-inferior-direito  { bottom: 30px; right: 40px; text-align: right; }
 
 h1 { 
     color: #f8fafc; 
     text-shadow: 2px 2px 0px #0f172a;
-    font-size: 2.2rem;
+    margin-bottom: 20px;
+    font-size: 2.5rem;
+    z-index: 10;
+    position: relative;
+}
+
+h2, h3 {
+    text-shadow: 1px 1px 2px #0f172a;
     position: relative;
     z-index: 10;
+    margin-bottom: 10px;
 }
 
 /* ==========================================================================
-   CENTRALIZAÇÃO MATEMÁTICA DA ARENA
+   ALINHAMENTO CENTRALIZADO INTEGRAL
    ========================================================================== */
 .container-tela { 
     width: 100%;
     max-width: 1200px; 
     margin: 0 auto; 
+    padding: 10px;
     display: flex;
     flex-direction: column;
     align-items: center; 
@@ -77,50 +87,101 @@ h1 {
     flex-direction: column;
     align-items: center;
     justify-content: center;
-    min-width: 440px;
+    min-width: 380px;
     max-width: 100%;
-    margin: 10px auto;
+    margin: 15px auto;
     box-shadow: 0 20px 40px rgba(0,0,0,0.6);
+    position: relative;
+    z-index: 10;
 }
 
+hr {
+    border: 0;
+    border-top: 2px solid #1e293b;
+    margin: 15px 0;
+    width: 100%;
+}
+
+input {
+    display: block;
+    width: 100%;
+    padding: 12px; 
+    border-radius: 8px; 
+    border: 2px solid #334155;
+    background: #020617; 
+    color: #fff; 
+    text-align: center;
+    margin-bottom: 10px;
+}
+
+button {
+    background: #059669; 
+    color: white; 
+    font-weight: bold;
+    border: 2px solid #10b981; 
+    padding: 12px 24px; 
+    border-radius: 8px; 
+    cursor: pointer; 
+    margin: 6px;
+    font-size: 14px;
+    transition: all 0.15s ease;
+}
+
+button:hover { 
+    background: #10b981; 
+    transform: scale(1.03);
+}
+
+button:disabled { 
+    background: #334155; 
+    border-color: #475569;
+    color: #94a3b8; 
+    cursor: not-allowed; 
+    transform: none;
+}
+
+/* ==========================================================================
+   CONFIGURAÇÃO ESTÁVEL DO CONTAINER DO TABULEIRO
+   ========================================================================== */
 .setup-container { 
     display: flex; 
-    flex-direction: row; 
+    flex-direction: column;
     align-items: center; 
     justify-content: center;
-    gap: 25px; 
+    gap: 30px; 
+    margin-top: 15px; 
     width: 100%;
-    margin-top: 15px;
 }
 
-/* CONTAINER DO MAR (CAIS DE MADEIRA MARROM BORDER) */
+/* Forçado display grid constante com máxima prioridade para o mar não sumir */
 .grid-8x8, #meu-grid-setup {
     display: grid !important; 
     grid-template-columns: repeat(8, 44px) !important;
     grid-template-rows: repeat(8, 44px) !important; 
-    gap: 0px !important; /* IMPORTANTE: Mantém os blocos unidos para fundir os barcos */
+    gap: 0px !important; 
     background: #023e8a; 
-    padding: 12px; 
+    padding: 14px; 
     border-radius: 14px;
     border: 6px solid #b5838d; 
     box-shadow: 0 15px 35px rgba(0, 0, 0, 0.8);
     width: fit-content !important;
+    margin: 0 auto !important;
 }
 
 /* ==========================================================================
-   TEXTURA NATURAL DE ÁGUA
+   ELEMENTOS INTERNOS DO MAR (TEXTURA NATURAL FLUÍDA)
    ========================================================================== */
 .celula { 
     background-color: #0077b6; 
     background-image: 
         radial-gradient(circle at 30% 30%, #0096c7 10%, transparent 11%),
         radial-gradient(circle at 70% 70%, #0096c7 8%, transparent 9%);
-    background-size: 44px 44px;
-    border: 0.5px solid rgba(255, 255, 255, 0.08); /* Separação suave entre águas */
+    background-size: 44px 44px; 
+    border: 0.5px solid rgba(255, 255, 255, 0.08); 
+    transition: background-color 0.2s;
     width: 44px;
     height: 44px;
     position: relative;
-    box-sizing: border-box;
 }
 
 .celula:hover { 
@@ -128,7 +189,6 @@ h1 {
     box-shadow: inset 0 0 8px rgba(255, 255, 255, 0.3);
 }
 
-/* Água após receber o tiro (Cinza) */
 .agua { 
     background-color: #475569 !important; 
     background-image: radial-gradient(circle at 50% 50%, #64748b 10%, transparent 50%) !important;
@@ -137,32 +197,32 @@ h1 {
 }
 
 /* ==========================================================================
-   DESIGN DE BARCO UNIFICADO (VIRA UMA PEÇA ÚNICA COESA)
+   VISUAL DO BARCO UNIFICADO CONTÍNUO
    ========================================================================== */
 .meu-navio { 
     background: #2b2b2b !important;
-    border: none !important; /* Elimina as divisórias internas dos quadradinhos */
+    border: none !important; 
     box-shadow: inset 0 -3px 0px #1a1a1a !important;
+    z-index: 5;
 }
 
-/* Escotilha/Janela padrão */
 .meu-navio::after {
-    content: ''; position: absolute;
+    content: '';
+    position: absolute;
     top: 38%; left: 38%; width: 24%; height: 24%;
-    background: #38bdf8; border: 1px solid #111; border-radius: 50%;
+    background: #38bdf8;
+    border: 1px solid #111;
+    border-radius: 50%;
     z-index: 6;
 }
 
-/* --- MODELAGEM DOS BARCOS HORIZONTAIS --- */
-
-/* Proa Horizontal (Primeira peça da esquerda) */
+/* --- ADJACÊNCIA HORIZONTAL --- */
 .meu-navio:has(+ .meu-navio) {
     border-top-left-radius: 22px 22px !important;
     border-bottom-left-radius: 22px 22px !important;
     background: linear-gradient(90deg, #1f1f1f, #2b2b2b) !important;
 }
 
-/* Popa Horizontal (Última peça da direita) */
 .grid-8x8 .meu-navio + .meu-navio:not(:has(+ .meu-navio)) {
     border-top-right-radius: 8px !important;
     border-bottom-right-radius: 8px !important;
@@ -172,21 +232,21 @@ h1 {
     background: #ef4444; border-radius: 2px; width: 6px; height: 6px; left: 65%;
 }
 
-/* Bloco central de barcos horizontais de 3 blocos (Torre de comando amarela) */
+.grid-8x8 .meu-navio:has(+ .meu-navio) + .meu-navio:has(+ .meu-navio) {
+    background: #2b2b2b !important;
+}
 .grid-8x8 .meu-navio:has(+ .meu-navio) + .meu-navio:has(+ .meu-navio)::after {
-    border-radius: 2px; width: 40%; height: 40%; left: 30%; top: 30%; background: #f59e0b;
+    border-radius: 2px; width: 40%; height: 40%; left: 30%; top: 30%;
+    background: #f59e0b;
 }
 
-/* --- MODELAGEM DOS BARCOS VERTICAIS --- */
-
-/* Proa Vertical (Bico apontando para Cima) */
+/* --- ADJACÊNCIA VERTICAL (USANDO DATA-ATTRIBUTES DO JS) --- */
 .meu-navio[data-v-peca="proa"] {
     border-top-left-radius: 22px 22px !important;
     border-top-right-radius: 22px 22px !important;
     background: linear-gradient(180deg, #1f1f1f, #2b2b2b) !important;
 }
 
-/* Popa Vertical (Traseira reta apontando para Baixo) */
 .meu-navio[data-v-peca="popa"] {
     border-bottom-left-radius: 8px !important;
     border-bottom-right-radius: 8px !important;
@@ -196,30 +256,59 @@ h1 {
     background: #ef4444; border-radius: 2px; width: 6px; height: 6px; top: 65%; left: 45%;
 }
 
-/* Centro de barcos verticais de 3 blocos (Torre de comando amarela) */
+.meu-navio[data-v-peca="meio"] {
+    background: #2b2b2b !important;
+}
 .meu-navio[data-v-peca="meio"]::after {
-    border-radius: 2px; width: 40%; height: 40%; left: 30%; top: 30%; background: #f59e0b;
+    border-radius: 2px; width: 40%; height: 40%; left: 30%; top: 30%;
+    background: #f59e0b;
 }
 
 /* ==========================================================================
-   PAINEL LATERAL DE BOTÕES E ENGENHARIA DE RENDER
+   EFEITOS DE TIRO E DINÂMICA
    ========================================================================== */
-.controles-setup {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    min-width: 120px;
+.fogo { 
+    background: radial-gradient(circle, #ff0055 20%, #4a0010 90%) !important; 
+    box-shadow: 0 0 15px #ff5555 !important;
+}
+.fogo::after { display: none; }
+.fogo::before {
+    content: '💥'; position: absolute; font-size: 20px;
+    top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 10;
 }
 
-button {
-    color: white; 
-    font-weight: bold;
-    border: 2px solid rgba(255,255,255,0.2); 
-    padding: 12px 20px; 
-    border-radius: 8px; 
-    cursor: pointer;
-    font-size: 14px;
-    transition: background-color 0.1s, transform 0.1s;
+.revelado-fim {
+    background: linear-gradient(135deg, #ff9f1c 0%, #ff4d6d 100%) !important;
+    border: 2px solid #fff !important;
+    box-shadow: 0 0 15px #ff9f1c !important;
 }
-button:hover { transform: scale(1.03); }
-button:disabled { background: #334155 !important; border-color: #475569 !important; color: #94a3b8; cursor: not-allowed; transform: none; }
+
+#arena { 
+    display: flex; flex-wrap: wrap; justify-content: center; gap: 30px; margin-top: 20px; width: 100%;
+}
+
+.tabuleiro-container { background: #0f172a; padding: 16px; border-radius: 16px; border: 4px solid #1e293b; }
+.player-morto { opacity: 0.3; border-color: #ef4444; }
+.alerta {
+    position: fixed; top: 25px; left: 50%; transform: translateX(-50%);
+    background: #dc2626; color: white; padding: 14px 40px; font-weight: bold;
+    border-radius: 50px; box-shadow: 0 10px 30px rgba(0,0,0,0.7); z-index: 10000;
+}
+
+/* ==========================================================================
+   ESTRUTURAS EXTRAS (TABELAS E LOBBIES)
+   ========================================================================== */
+.item-sala {
+    display: flex; justify-content: space-between; align-items: center;
+    background: #020617; padding: 10px 15px; margin: 8px 0; border-radius: 8px;
+    border: 1px solid #1e293b; width: 100%; min-width: 300px;
+}
+
+table { width: 100%; border-collapse: collapse; margin-top: 25px; background: #020617; border-radius: 12px; overflow: hidden; }
+th, td { padding: 15px; border-bottom: 1px solid #1e293b; text-align: center; }
+th { background-color: #0f172a; color: #38bdf8; }
+.rank-vencedor { background-color: rgba(16, 185, 129, 0.15); color: #34d399; }
+
+@media (min-width: 768px) {
+    .setup-container { flex-direction: row; }
+}
