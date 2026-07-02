@@ -1,120 +1,72 @@
 body {
-    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    background-color: #0b0e14;
-    color: #e2e8f0;
+    font-family: 'Segoe UI', Arial, sans-serif;
+    background-color: #0d1117;
+    color: #c9d1d9;
     text-align: center;
-    margin: 0;
-    padding: 20px;
+    margin: 0; padding: 20px;
 }
-
-h1 { color: #00f2fe; text-shadow: 0 0 10px rgba(0, 242, 254, 0.5); }
-
-.container-tela {
-    max-width: 1000px;
-    margin: 0 auto;
-    animation: fadeIn 0.4s ease-in-out;
-}
-
+h1 { color: #58a6ff; text-shadow: 0 0 15px rgba(88, 166, 255, 0.4); }
+.container-tela { max-width: 1100px; margin: 0 auto; }
 .card {
-    background: #141923;
-    border: 1px solid #1e293b;
-    padding: 25px;
-    border-radius: 12px;
-    display: inline-block;
-    min-width: 320px;
-    box-shadow: 0 4px 20px rgba(0,0,0,0.4);
+    background: #161b22; border: 1px solid #30363d;
+    padding: 20px; border-radius: 10px; display: inline-block; min-width: 300px;
+    margin-bottom: 20px;
 }
-
-input[type="text"] {
-    padding: 10px;
-    width: 80%;
-    border-radius: 6px;
-    border: 1px solid #334155;
-    background: #1e293b;
-    color: #fff;
-    font-size: 16px;
-    text-align: center;
+input {
+    padding: 10px; border-radius: 6px; border: 1px solid #30363d;
+    background: #0d1117; color: #fff; font-size: 15px; margin: 5px; text-align: center;
 }
-
 button {
-    background: linear-gradient(135deg, #00f2fe 0%, #4facfe 100%);
-    color: #000;
-    font-weight: bold;
-    border: none;
-    padding: 12px 24px;
-    border-radius: 6px;
-    cursor: pointer;
-    margin-top: 10px;
-    transition: transform 0.1s, opacity 0.2s;
+    background: #238636; color: white; font-weight: bold;
+    border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; margin: 5px;
 }
-button:hover:not(:disabled) { transform: scale(1.03); opacity: 0.9; }
-button:disabled { background: #334155; color: #64748b; cursor: not-allowed; }
+button:hover { background: #2ea043; }
+button:disabled { background: #21262d; color: #8b949e; cursor: not-allowed; }
 
-.opcoes-criacao { margin-top: 15px; font-size: 14px; }
-
-/* Lista de Lobbies */
-#lista-salas-container { margin: 20px auto; max-width: 500px; }
 .item-sala {
-    background: #1e293b;
-    padding: 12px;
-    margin: 8px 0;
-    border-radius: 6px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    border-left: 4px solid #00f2fe;
+    background: #161b22; padding: 12px; margin: 8px auto; border-radius: 6px;
+    max-width: 500px; display: flex; justify-content: space-between; align-items: center;
+    border: 1px solid #30363d;
 }
 
-/* Moderação (Kick) */
-.btn-kick {
-    background: #ef4444; color: white; padding: 3px 8px; font-size: 12px; margin-left: 15px;
-}
-
-/* Os Tabuleiros 8x8 */
-.grid-8x8 {
-    display: grid;
-    grid-template-columns: repeat(8, 35px);
-    grid-template-rows: repeat(8, 35px);
-    gap: 3px;
-    background: #1e293b;
-    padding: 5px;
-    border-radius: 6px;
-}
-
-.celula {
-    background-color: #0f172a;
-    border: 1px solid #1e293b;
-    border-radius: 3px;
-    transition: all 0.15s ease;
-}
-.celula:hover { background-color: #334155; }
-
-/* SKIN DOS BARCOS (Estilo Blindagem Militar Tecnológica) */
+/* SKIN DOS NAVIOS (Blindagem Militar com cano central/antena) */
 .meu-navio { 
-    background: linear-gradient(45deg, #34d399, #059669); 
-    box-shadow: inset 0 0 8px rgba(0,0,0,0.6);
-    border: 1px solid #6ee7b7;
+    background: linear-gradient(135deg, #6e7681 0%, #484f58 100%) !important; 
+    border: 2px solid #8b949e !important;
     position: relative;
+    border-radius: 4px !important;
+    box-shadow: inset 0 0 6px #000;
 }
-.meu-navio::after {
-    content: '';
-    position: absolute;
-    top: 25%; left: 25%; width: 50%; height: 50%;
-    background: rgba(255,255,255,0.2);
-    border-radius: 50%;
+.meu-navio::before {
+    content: ''; position: absolute;
+    top: 20%; left: 45%; width: 10%; height: 60%;
+    background-color: #f0883e; border-radius: 2px; /* Detalhe da cabine */
 }
 
-/* Efeitos de Disparos */
-.agua { background-color: #38bdf8 !important; box-shadow: inset 0 0 8px rgba(0,0,0,0.5); }
-.fogo { 
-    background: radial-gradient(circle, #ef4444 30%, #7f1d1d 90%) !important; 
-    border-color: #f87171 !important;
-    animation: pulse 1s infinite alternate;
+.grid-8x8 {
+    display: grid; grid-template-columns: repeat(8, 36px);
+    grid-template-rows: repeat(8, 36px); gap: 3px; background: #21262d; padding: 6px; border-radius: 6px;
 }
+.celula { background-color: #0d1117; border-radius: 2px; transition: background 0.1s; }
+.celula:hover { background-color: #30363d; }
+
+.agua { background-color: #1f6feb !important; }
+.fogo { background: radial-gradient(circle, #f85149, #8e1510) !important; border: 1px solid #f85149 !important; }
 
 #arena { display: flex; flex-wrap: wrap; justify-content: center; gap: 20px; }
-.tabuleiro-container { background: #141923; padding: 15px; border-radius: 10px; }
-.setup-container { display: flex; justify-content: center; gap: 40px; margin-top: 25px; align-items: center; }
+.tabuleiro-container { background: #161b22; padding: 15px; border-radius: 8px; border: 1px solid #30363d; }
 
-@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-@keyframes pulse { from { transform: scale(1); } to { transform: scale(0.97); } }
+/* FEEDBACK DE ELIMINAÇÃO */
+.player-morto { opacity: 0.35; border: 2px dashed #f85149; }
+.alerta {
+    position: fixed; top: 20px; left: 50%; transform: translateX(-50%);
+    background: #f85149; color: white; padding: 12px 30px; font-weight: bold;
+    border-radius: 30px; box-shadow: 0 4px 15px rgba(0,0,0,0.5); z-index: 9999;
+}
+
+/* TABELA DE RANKING FINAL */
+table { width: 100%; border-collapse: collapse; margin-top: 15px; }
+th, td { padding: 12px; border-bottom: 1px solid #30363d; text-align: center; }
+th { background-color: #21262d; color: #58a6ff; }
+.rank-vencedor { background-color: rgba(46, 160, 67, 0.15); color: #56d364; }
+.btn-kick { background: #da3637; padding: 3px 8px; font-size: 11px; }

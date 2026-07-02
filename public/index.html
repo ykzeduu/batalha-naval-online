@@ -2,57 +2,81 @@
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
-    <title>Batalha Naval Advanced 4P</title>
+    <title>Batalha Naval Pro 4P</title>
     <link rel="stylesheet" href="style.css">
     <script src="/socket.io/socket.io.js"></script>
 </head>
 <body>
 
+    <div id="logs-feed"></div>
+
     <div id="tela-inicial" class="container-tela">
         <h1>Batalha Naval 4P</h1>
         <div class="card">
             <input type="text" id="input-nome" placeholder="Seu Nome/Nick" maxlength="12">
+            <input type="password" id="input-senha-criar" placeholder="Senha da Sala (Opcional)">
             <hr>
-            <div class="opcoes-criacao">
-                <label><input type="checkbox" id="check-bots" checked> Preencher vagas vazias com Bots</label>
-                <button onclick="criarSala()">Criar Novo Lobby Público</button>
-            </div>
+            <button onclick="criarSala()">Criar Novo Lobby</button>
         </div>
 
-        <h3>Lobbies Públicos Disponíveis:</h3>
-        <div id="lista-salas-container">
-            <p>Nenhuma sala aberta no momento...</p>
-        </div>
+        <h3>Lobbies Ativos:</h3>
+        <div id="lista-salas-container"></div>
     </div>
 
     <div id="tela-lobby" class="container-tela" style="display:none;">
         <h2 id="sala-titulo">Sala: -</h2>
         <div class="card">
-            <h3>Jogadores na Sala:</h3>
+            <h3>Gerenciar Bots:</h3>
+            <div id="controles-bot-dono" style="display:none;">
+                <button onclick="configBot('adicionar')">+ Adicionar Bot</button>
+                <button onclick="configBot('remover')">- Remover Bot</button>
+            </div>
+            <h3>Jogadores:</h3>
             <ul id="lista-jogadores-lobby"></ul>
             <br>
-            <button id="btn-master-start" style="display:none;" onclick="iniciarPosicionamento()">Iniciar Fase de Preparação</button>
+            <button id="btn-master-start" style="display:none;" onclick="iniciarPosicionamento()">Mudar para Preparação</button>
         </div>
     </div>
 
     <div id="tela-posicionamento" class="container-tela" style="display:none;">
-        <h2>Posicione sua Frota (8x8)</h2>
-        <p>Clique nas células para posicionar seus barcos. <br> 
-           Frota: 1 barco de 3 blocos e 2 barcos de 2 blocos (Total: 7 blocos).</p>
-        
+        <h2>Monte sua Frota (8x8)</h2>
+        <p>Preencha exatamente 7 blocos com seus navios (1 barco de 3 blocos, 2 barcos de 2 blocos).</p>
         <div class="setup-container">
             <div id="meu-grid-setup" class="grid-8x8"></div>
             <div class="controles-setup">
-                <p>Blocos Marcados: <span id="contador-blocos">0</span> / 7</p>
-                <button onclick="limparSetup()">Limpar Tabuleiro</button>
-                <button id="btn-confirmar-frota" onclick="confirmarFrota()" disabled>Confirmar Prontidão</button>
+                <p>Marcados: <span id="contador-blocos">0</span> / 7</p>
+                <button onclick="limparSetup()">Limpar</button>
+                <button id="btn-confirmar-frota" onclick="confirmarFrota()" disabled>Pronto</button>
             </div>
         </div>
     </div>
 
     <div id="tela-jogo" class="container-tela" style="display:none;">
         <h2 id="turno-indicador">Vez de: -</h2>
+        <h3 id="tiros-indicador" style="color: #ffb86c;">Tiros restantes: 2</h3>
         <div id="arena"></div>
+    </div>
+
+    <div id="tela-final" class="container-tela" style="display:none;">
+        <h1>Fim de Jogo!</h1>
+        <h2 id="vencedor-destaque" style="color: #50fa7b;">Vencedor: -</h2>
+        <div class="card" style="width: 80%;">
+            <h3>Classificação Geral & Estatísticas:</h3>
+            <table id="tabela-ranking">
+                <thead>
+                    <tr>
+                        <th>Jogador</th>
+                        <th>Abates (Inimigos Afundados)</th>
+                        <th>Tiros Disparados</th>
+                        <th>Tiros Recebidos</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody id="corpo-ranking"></tbody>
+            </table>
+            <br>
+            <button onclick="location.reload()">Voltar ao Menu Principal</button>
+        </div>
     </div>
 
     <script>
@@ -64,19 +88,14 @@
 
         socket.on('connect', () => { meuId = socket.id; });
 
-        // Recebe atualizações das salas abertas
         socket.on('lista_salas', (salas) => {
             const container = document.getElementById('lista-salas-container');
-            container.innerHTML = '';
-            if (salas.length === 0) {
-                container.innerHTML = '<p>Nenhuma sala aberta no momento...</p>';
-                return;
-            }
+            container.innerHTML = salas.length === 0 ? '<p>Nenhum lobby ativo no momento...</p>' : '';
             salas.forEach(s => {
                 container.innerHTML += `
                     <div class="item-sala">
-                        <span>Mesa: <strong>${s.id}</strong> (${s.qtd}/4 Jogadores) ${s.bots ? '[Com Bots]' : ''}</span>
-                        <button onclick="entrarSala('${s.id}')">Entrar</button>
+                        <span>Mesa: <strong>${s.id}</strong> (${s.qtd}/4p) ${s.privado ? '🔒 Privada' : '🔓 Pública'}</span>
+                        <button onclick="solicitarEntrada('${s.id}', ${s.privado})">Entrar</button>
                     </div>
                 `;
             });
@@ -84,15 +103,24 @@
 
         function criarSala() {
             const nome = document.getElementById('input-nome').value.trim();
-            if(!nome) return alert('Insira seu nome primeiro!');
-            const bots = document.getElementById('check-bots').checked;
-            socket.emit('criar_sala', { nomeDono: nome, usarBots: bots });
+            const senha = document.getElementById('input-senha-criar').value;
+            if(!nome) return alert('Insira seu nome!');
+            socket.emit('criar_sala', { nomeDono: nome, senha: senha });
         }
 
-        function entrarSala(id) {
+        function solicitarEntrada(id, ePrivado) {
             const nome = document.getElementById('input-nome').value.trim();
-            if(!nome) return alert('Insira seu nome para poder entrar na sala!');
-            socket.emit('entrar_sala', { salaId: id, nomeJogador: nome });
+            if(!nome) return alert('Insira seu nome primeiro!');
+            let senha = "";
+            if (ePrivado) {
+                senha = prompt("Este lobby é privado. Digite a senha para entrar:");
+                if (senha === null) return;
+            }
+            socket.emit('entrar_sala', { salaId: id, nomeJogador: nome, senhaInserida: senha });
+        }
+
+        function configBot(acao) {
+            socket.emit('alternar_bot', { salaId: minhaSalaId, acao: acao });
         }
 
         socket.on('sala_criada', (id) => { minhaSalaId = id; });
@@ -103,54 +131,42 @@
             document.getElementById('tela-lobby').style.display = 'block';
             document.getElementById('sala-titulo').innerText = `Lobby: ${sala.id}`;
 
+            if(sala.donoId === meuId) {
+                document.getElementById('controles-bot-dono').style.display = 'block';
+                document.getElementById('btn-master-start').style.display = 'inline-block';
+            }
+
             const lista = document.getElementById('lista-jogadores-lobby');
             lista.innerHTML = '';
-
             sala.jogadores.forEach(j => {
                 let li = document.createElement('li');
-                li.innerText = j.nome + (j.id === sala.donoId ? ' 👑 (Dono)' : '') + (j.pronto ? ' ✓ Pronto' : '');
-                
-                // Opção de kick para o Dono da sala
-                if (sala.donoId === meuId && j.id !== meuId && !j.isBot) {
-                    let btnKick = document.createElement('button');
-                    btnKick.innerText = 'Kick';
-                    btnKick.className = 'btn-kick';
-                    btnKick.onclick = () => socket.emit('kick_jogador', { salaId: sala.id, jogadorId: j.id });
-                    li.appendChild(btnKick);
+                li.innerText = `${j.nome} ${j.isBot ? '[BOT]' : ''} ${j.id === sala.donoId ? '👑' : ''} ${j.pronto ? '✓' : ''}`;
+                if(sala.donoId === meuId && j.id !== meuId && !j.isBot) {
+                    let b = document.createElement('button'); b.innerText = 'Kick'; b.className = 'btn-kick';
+                    b.onclick = () => socket.emit('kick_jogador', { salaId: sala.id, jogadorId: j.id });
+                    li.appendChild(b);
                 }
                 lista.appendChild(li);
             });
-
-            if (sala.donoId === meuId) {
-                document.getElementById('btn-master-start').style.display = 'inline-block';
-            }
         });
 
-        socket.on('kickado', () => {
-            alert('Você foi removido da sala pelo administrador.');
-            location.reload();
-        });
-
+        socket.on('kickado', () => { alert('Você foi expulso da sala.'); location.reload(); });
         socket.on('erro', (msg) => alert(msg));
 
-        // Transição para tela de arrumar os barcos
-        function iniciarPosicionamento() {
-            socket.emit('iniciar_posicionamento', { salaId: minhaSalaId });
-        }
+        function iniciarPosicionamento() { socket.emit('iniciar_posicionamento', { salaId: minhaSalaId }); }
 
-        socket.on('fase_posicionamento', (sala) => {
+        socket.on('fase_posicionamento', () => {
             document.getElementById('tela-lobby').style.display = 'none';
             document.getElementById('tela-posicionamento').style.display = 'block';
             gerarGridSetup();
         });
 
-        function gerarGridSetup() {
+        function generarGridSetup() {
             const container = document.getElementById('meu-grid-setup');
             container.innerHTML = '';
             for(let r=0; r<8; r++) {
                 for(let c=0; c<8; c++) {
-                    let cel = document.createElement('div');
-                    cel.className = 'celula';
+                    let cel = document.createElement('div'); cel.className = 'celula';
                     cel.onclick = () => alternarBloco(r, c, cel);
                     container.appendChild(cel);
                 }
@@ -159,14 +175,10 @@
 
         function alternarBloco(r, c, elemento) {
             if (meuTabuleiroSetup[r][c] === 0) {
-                if (blocosMarcados >= 7) return alert('Você já atingiu o limite de 7 blocos de frota (1x3 e 2x2)!');
-                meuTabuleiroSetup[r][c] = 1;
-                elemento.classList.add('meu-navio');
-                blocosMarcados++;
+                if (blocosMarcados >= 7) return;
+                meuTabuleiroSetup[r][c] = 1; elemento.classList.add('meu-navio'); blocosMarcados++;
             } else {
-                meuTabuleiroSetup[r][c] = 0;
-                elemento.classList.remove('meu-navio');
-                blocosMarcados--;
+                meuTabuleiroSetup[r][c] = 0; elemento.classList.remove('meu-navio'); blocosMarcados--;
             }
             document.getElementById('contador-blocos').innerText = blocosMarcados;
             document.getElementById('btn-confirmar-frota').disabled = (blocosMarcados !== 7);
@@ -174,15 +186,13 @@
 
         function limparSetup() {
             meuTabuleiroSetup = Array(8).fill(0).map(() => Array(8).fill(0));
-            blocosMarcados = 0;
-            document.getElementById('contador-blocos').innerText = 0;
-            document.getElementById('btn-confirmar-frota').disabled = true;
-            gerarGridSetup();
+            blocosMarcados = 0; document.getElementById('contador-blocos').innerText = 0;
+            document.getElementById('btn-confirmar-frota').disabled = true; generarGridSetup();
         }
 
         function confirmarFrota() {
             socket.emit('tabuleiro_pronto', { salaId: minhaSalaId, tabuleiro: meuTabuleiroSetup });
-            document.getElementById('tela-posicionamento').innerHTML = '<h2>Aguardando os outros capitães terminarem...</h2>';
+            document.getElementById('tela-posicionamento').innerHTML = '<h2>Aguardando frotas aliadas/inimigas...</h2>';
         }
 
         socket.on('jogo_iniciado', (sala) => {
@@ -191,21 +201,25 @@
             renderizarPartida(sala);
         });
 
-        socket.on('atualizar_jogo', (sala) => {
-            renderizarPartida(sala);
+        socket.on('atualizar_jogo', (sala) => { renderizarPartida(sala); });
+
+        socket.on('notificacao', (msg) => {
+            const feed = document.getElementById('logs-feed');
+            feed.innerHTML = `<div class="alerta">${msg}</div>`;
+            setTimeout(() => feed.innerHTML = '', 4000);
         });
 
         function renderizarPartida(sala) {
-            const arena = document.getElementById('arena');
-            arena.innerHTML = '';
-            
+            const arena = document.getElementById('arena'); arena.innerHTML = '';
             const jVez = sala.jogadores[sala.turnoAtual];
-            document.getElementById('turno-indicador').innerText = `Vez de atirar: ${jVez.nome}`;
+            
+            document.getElementById('turno-indicador').innerText = `Vez de: ${jVez.nome}`;
+            document.getElementById('tiros-indicador').innerText = `Tiros restantes na rodada: ${sala.tirosRestantesNoTurno}`;
 
             sala.jogadores.forEach((jog, idx) => {
                 const box = document.createElement('div');
-                box.className = 'tabuleiro-container';
-                box.innerHTML = `<h3>${jog.id === meuId ? 'Seu Mar' : jog.nome}</h3>`;
+                box.className = `tabuleiro-container ${!jog.vivo ? 'player-morto' : ''}`;
+                box.innerHTML = `<h3>${jog.id === meuId ? 'Seu Mar' : jog.nome} ${!jog.vivo ? '(ELIMINADO)' : ''}</h3>`;
 
                 const grid = document.createElement('div');
                 grid.className = 'grid-8x8';
@@ -220,8 +234,8 @@
                         if (val === 3) cel.classList.add('fogo');
                         if (val === 1 && jog.id === meuId) cel.classList.add('meu-navio');
 
-                        // Lógica de ataque
-                        if (jog.id !== meuId && sala.jogadores[sala.turnoAtual].id === meuId && val < 2) {
+                        // Só atira se a vítima estiver viva, se for a vez do player, e o alvo não for ele mesmo
+                        if (jog.vivo && jog.id !== meuId && sala.jogadores[sala.turnoAtual].id === meuId && val < 2) {
                             cel.style.cursor = 'crosshair';
                             cel.onclick = () => socket.emit('dar_tiro', { salaId: minhaSalaId, alvoIndex: idx, linha: r, coluna: c });
                         }
@@ -232,6 +246,27 @@
                 arena.appendChild(box);
             });
         }
+
+        // Exibe tela final com o ranking detalhado
+        socket.on('fim_de_jogo', ({ vencedor, ranking }) => {
+            document.getElementById('tela-jogo').style.display = 'none';
+            document.getElementById('tela-final').style.display = 'block';
+            document.getElementById('vencedor-destaque').innerText = `🏆 Campeão: ${vencedor}`;
+
+            const corpo = document.getElementById('corpo-ranking');
+            corpo.innerHTML = '';
+            ranking.forEach(j => {
+                corpo.innerHTML += `
+                    <tr class="${j.nome === vencedor ? 'rank-vencedor' : ''}">
+                        <td><strong>${j.nome}</strong></td>
+                        <td>${j.estatisticas.abates} Navios Afundados</td>
+                        <td>${j.estatisticas.tirosDados} disparos</td>
+                        <td>${j.estatisticas.tirosTomados} impactos</td>
+                        <td>${j.vivo ? 'Vivo' : 'Eliminado'}</td>
+                    </tr>
+                `;
+            });
+        });
     </script>
 </body>
 </html>
